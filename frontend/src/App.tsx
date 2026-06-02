@@ -21,7 +21,7 @@ export default function App() {
     formData.append("job_description", jobDescription);
     formData.append("target_company", targetCompany);
     try {
-      const res = await axios.post("http://localhost:8000/analyze", formData);
+      const res = await axios.post("https://resumelens-cm11.onrender.com/analyze", formData);
       setResult(res.data);
     } catch (err) {
       alert("Something went wrong. Make sure your backend is running!");
@@ -192,7 +192,7 @@ export default function App() {
               onClick={async () => {
                 if (email) {
                   try {
-                    await axios.post("http://localhost:8000/save-email", { email });
+                    await axios.post("https://resumelens-cm11.onrender.com/save-email", { email });
                   } catch (err) {
                     console.log("Email save failed silently");
                   }

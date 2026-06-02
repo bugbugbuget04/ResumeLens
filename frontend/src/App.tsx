@@ -67,6 +67,7 @@ export default function App() {
       indeed: `https://www.indeed.com/jobs?q=${encodeURIComponent(role)}&l=United+States`,
       linkedin: `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(role)}&location=United%20States`,
       ziprecruiter: `https://www.ziprecruiter.com/jobs-search?search=${encodeURIComponent(role)}&location=United+States`,
+      glassdoor: `https://www.glassdoor.com/Job/jobs.htm?sc.keyword=${encodeURIComponent(role)}&locT=N&locId=1`,
     }));
   };
 
@@ -443,6 +444,10 @@ export default function App() {
                         <a href={item.ziprecruiter} target="_blank" rel="noopener noreferrer"
                           className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-emerald-500/20 transition-all">
                           ZipRecruiter →
+                        </a>
+                        <a href={item.glassdoor} target="_blank" rel="noopener noreferrer"
+                          className="bg-pink-500/10 border border-pink-500/20 text-pink-400 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-pink-500/20 transition-all">
+                          Glassdoor →
                         </a>
                       </div>
                     </div>

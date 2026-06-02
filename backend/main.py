@@ -37,21 +37,30 @@ async def analyze_resume(
     for page in pdf.pages:
         text += page.extract_text() or ""
 
-    industry_context = f"The candidate is targeting the {industry} industry." if industry else ""
-    company_context = f"The target company is {target_company}. Consider their known hiring standards and ATS system." if target_company else ""
+    industry_context = f"The candidate is targeting the {industry} industry. Tailor ALL feedback specifically for what {industry} employers and ATS systems look for." if industry else ""
+    company_context = f"The target company is {target_company}. Research what {target_company} specifically looks for in candidates — their culture, known ATS keywords, hiring bar, and role expectations — and reference this directly in your feedback." if target_company else ""
     jd_context = f"\n\nJOB DESCRIPTION TO MATCH AGAINST:\n{job_description}" if job_description else ""
 
     prompt = f"""
-You are a senior US hiring manager and certified resume coach with 15 years of experience at Fortune 500 companies. Analyze this resume with the same rigor as a professional resume review service charging $200/hour.
+You are a brutally honest but constructive US resume coach with 15 years of experience placing candidates at Fortune 500 companies. You give hyper-specific, personalized feedback — never generic advice.
 
 {industry_context}
 {company_context}
+
+STRICT RULES YOU MUST FOLLOW:
+- Every piece of feedback MUST reference specific content from the actual resume (real job titles, real company names, real bullet points, real skills listed)
+- NEVER say vague things like "add metrics" or "improve your summary" — instead quote the exact weak text and show the exact rewrite
+- Strengths must be specific skills or experiences actually visible in the resume, not generic traits like "communication skills"
+- Critical improvements must include the EXACT weak text from the resume and the EXACT improved version
+- Target roles must match the candidate's actual experience level — don't suggest senior roles to a junior candidate
+- If a target company is provided, mention specifically what that company looks for and how this resume falls short or succeeds
+- If a job description is provided, compare the resume line by line against the requirements
 
 Return ONLY a JSON object with this exact structure, no markdown, no backticks:
 
 {{
     "overall_score": <number 0-100>,
-    "summary": "<3 sentence expert summary>",
+    "summary": "<3 sentence summary that references their actual job titles, companies, and specific gaps for their target industry — no generic statements>",
     "section_scores": {{
         "work_experience": <number 0-100>,
         "skills": <number 0-100>,
@@ -60,42 +69,46 @@ Return ONLY a JSON object with this exact structure, no markdown, no backticks:
         "formatting": <number 0-100>
     }},
     "ats_score": <number 0-100>,
-    "ats_feedback": "<specific ATS feedback>",
+    "ats_feedback": "<specific ATS feedback referencing actual resume content and target industry keywords>",
     "job_match_score": {"<number 0-100>" if job_description else "null"},
-    "job_match_feedback": {"<specific feedback on resume vs job description>" if job_description else "null"},
+    "job_match_feedback": {"<specific feedback comparing actual resume bullets to job description requirements>" if job_description else "null"},
     "keyword_analysis": {{
-        "strong_keywords": ["<keyword1>", "<keyword2>", "<keyword3>"],
-        "missing_keywords": ["<keyword1>", "<keyword2>", "<keyword3>"]
+        "strong_keywords": ["<actual keyword found in their resume>", "<actual keyword>", "<actual keyword>"],
+        "missing_keywords": ["<important keyword missing for their target role/industry>", "<missing keyword>", "<missing keyword>"]
     }},
     "bullet_point_analysis": {{
         "score": <number 0-100>,
-        "feedback": "<feedback>",
-        "weak_bullet": "<exact weak bullet from resume>",
-        "improved_bullet": "<rewritten version with metrics>"
+        "feedback": "<specific feedback referencing actual bullets from the resume>",
+        "weak_bullet": "<copy an exact weak bullet from their resume word for word>",
+        "improved_bullet": "<rewrite that exact bullet with specific metrics, impact, and action verbs>"
     }},
-    "top_strengths": ["<strength1>", "<strength2>", "<strength3>"],
+    "top_strengths": [
+        "<specific strength referencing actual experience or skill from their resume>",
+        "<specific strength>",
+        "<specific strength>"
+    ],
     "critical_improvements": [
         {{
             "priority": "HIGH",
             "section": "<section name>",
-            "issue": "<specific problem>",
-            "fix": "<exactly how to fix it>"
+            "issue": "<quote the exact weak text or describe the specific missing element>",
+            "fix": "<exact rewrite or precise action — never generic advice>"
         }},
         {{
             "priority": "HIGH",
             "section": "<section name>",
-            "issue": "<specific problem>",
-            "fix": "<exactly how to fix it>"
+            "issue": "<quote the exact weak text or describe the specific missing element>",
+            "fix": "<exact rewrite or precise action>"
         }},
         {{
             "priority": "MEDIUM",
             "section": "<section name>",
-            "issue": "<specific problem>",
-            "fix": "<exactly how to fix it>"
+            "issue": "<quote the exact weak text or describe the specific missing element>",
+            "fix": "<exact rewrite or precise action>"
         }}
     ],
     "interview_probability": "Low",
-    "target_roles": ["<role1>", "<role2>", "<role3>"]
+    "target_roles": ["<role that matches their actual experience level and background>", "<role>", "<role>"]
 }}
 
 IMPORTANT: critical_improvements MUST be an array with exactly 3 objects.

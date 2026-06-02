@@ -98,6 +98,7 @@ export default function App() {
               <p className="text-gray-500 text-sm mt-1">PDF files only</p>
               <input
                 id="fileInput"
+                name="fileInput"
                 type="file"
                 accept=".pdf"
                 className="hidden"
@@ -113,6 +114,8 @@ export default function App() {
             )}
 
             <select
+              id="industry"
+              name="industry"
               value={industry}
               onChange={(e) => setIndustry(e.target.value)}
               className="w-full bg-gray-800 border border-gray-700 focus:border-indigo-500 rounded-xl px-4 py-3 text-white mb-3 outline-none transition-all"
@@ -131,6 +134,8 @@ export default function App() {
             </select>
 
             <input
+              id="targetCompany"
+              name="targetCompany"
               type="text"
               placeholder="🏢 Target company e.g. Google, Amazon (optional)"
               value={targetCompany}
@@ -139,6 +144,8 @@ export default function App() {
             />
 
             <textarea
+              id="jobDescription"
+              name="jobDescription"
               placeholder="📋 Paste the job description here for better matching (optional)"
               value={jobDescription}
               onChange={(e) => setJobDescription(e.target.value)}
@@ -182,6 +189,8 @@ export default function App() {
             <h2 className="text-2xl font-black text-white mb-2">Your Results Are Ready!</h2>
             <p className="text-gray-400 mb-8">Enter your email to unlock your full score and analysis</p>
             <input
+              id="email"
+              name="email"
               type="email"
               placeholder="you@example.com"
               value={email}

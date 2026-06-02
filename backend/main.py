@@ -83,9 +83,9 @@ Return ONLY a JSON object with this exact structure, no markdown, no backticks:
         "improved_bullet": "<rewrite that exact bullet with specific metrics, impact, and action verbs>"
     }},
     "top_strengths": [
-        "<specific strength referencing actual experience or skill from their resume>",
-        "<specific strength>",
-        "<specific strength>"
+        "<quote or directly reference an actual job title, company, bullet point, or skill LITERALLY found in the resume — e.g. 'Worked as Sales Associate at FreshMart for 2 months handling 50+ daily customer interactions'>",
+        "<another strength pulled directly from actual resume content — never say 'communication skills' or 'problem-solving' as standalone phrases>",
+        "<third strength grounded in something literally written in the resume>"
     ],
     "critical_improvements": [
         {{

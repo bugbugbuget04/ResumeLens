@@ -78,7 +78,7 @@ export default function App() {
           <span className="text-lg font-bold text-white">ResumeLens</span>
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-gray-400 text-sm hidden md:block">Trusted by 10,000+ job seekers</span>
+          <span className="text-gray-400 text-sm hidden md:block">Free AI resume analysis in 30 seconds</span>
           <button className="bg-indigo-500 hover:bg-indigo-400 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all">
             Get Full Report — $4.99
           </button>

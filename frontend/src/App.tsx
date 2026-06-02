@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 
+const CHECKOUT_URL = "https://resumelens.lemonsqueezy.com/checkout/buy/aa1a1cb6-75f1-4536-b9c4-7c5553d65dbd";
+
 export default function App() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -12,7 +14,7 @@ export default function App() {
   const [jobDescription, setJobDescription] = useState("");
   const [targetCompany, setTargetCompany] = useState("");
 
-  // Load saved result on startup
+  // Load saved result on startup + check for ?paid=true in URL
   useEffect(() => {
     try {
       const saved = localStorage.getItem("resumelens_result");
@@ -25,8 +27,28 @@ export default function App() {
       if (savedIndustry) setIndustry(savedIndustry);
       if (savedCompany) setTargetCompany(savedCompany);
       if (savedPremium === "true") setPremium(true);
+
+      // Check if user just paid via Lemon Squeezy redirect
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("paid") === "true") {
+        setPremium(true);
+        localStorage.setItem("resumelens_premium", "true");
+        // Clean up URL
+        window.history.replaceState({}, "", window.location.pathname);
+      }
     } catch (e) {}
   }, []);
+
+  const handleCheckout = () => {
+    // Save state before redirecting so it's there when they come back
+    if (result) localStorage.setItem("resumelens_result", JSON.stringify(result));
+    if (email) localStorage.setItem("resumelens_email_submitted", "true");
+    if (industry) localStorage.setItem("resumelens_industry", industry);
+    if (targetCompany) localStorage.setItem("resumelens_company", targetCompany);
+    // Redirect to Lemon Squeezy with success redirect back to site
+    const successUrl = encodeURIComponent(window.location.origin + "?paid=true");
+    window.location.href = `${CHECKOUT_URL}?checkout[success_url]=${successUrl}`;
+  };
 
   const handleAnalyze = async () => {
     if (!file) return;
@@ -39,7 +61,6 @@ export default function App() {
     try {
       const res = await axios.post("https://resumelens-cm11.onrender.com/analyze", formData);
       setResult(res.data);
-      // Save to localStorage
       localStorage.setItem("resumelens_result", JSON.stringify(res.data));
       localStorage.setItem("resumelens_industry", industry);
       localStorage.setItem("resumelens_company", targetCompany);
@@ -80,8 +101,8 @@ export default function App() {
         </div>
         <div className="flex items-center gap-4">
           <span className="text-gray-400 text-sm hidden md:block">Free AI resume analysis in 30 seconds</span>
-          <button className="bg-indigo-500 hover:bg-indigo-400 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all">
-            Get Full Report — $4.99
+          <button onClick={handleCheckout} className="bg-indigo-500 hover:bg-indigo-400 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all">
+            Get Full Report — $3.99
           </button>
         </div>
       </nav>
@@ -358,9 +379,9 @@ export default function App() {
                     <div className="bg-gray-900 border border-gray-700 rounded-xl shadow-xl p-5 text-center">
                       <p className="text-xl mb-1">🔒</p>
                       <p className="font-bold text-white">{Math.max(0, (result.critical_improvements?.length || 0) - 1)} more issues found</p>
-                      <p className="text-gray-500 text-sm mt-1 mb-3">Unlock all fixes for $4.99</p>
-                      <button onClick={() => { setPremium(true); localStorage.setItem("resumelens_premium", "true"); }} className="bg-indigo-500 hover:bg-indigo-400 text-white px-5 py-2 rounded-lg font-bold text-sm transition-all">
-                        Unlock Full Report →
+                      <p className="text-gray-500 text-sm mt-1 mb-3">Unlock all fixes for $3.99</p>
+                      <button onClick={handleCheckout} className="bg-indigo-500 hover:bg-indigo-400 text-white px-5 py-2 rounded-lg font-bold text-sm transition-all">
+                        Unlock Full Report — $3.99 →
                       </button>
                     </div>
                   </div>
@@ -378,8 +399,8 @@ export default function App() {
                   ))}
                 </div>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <button onClick={() => { setPremium(true); localStorage.setItem("resumelens_premium", "true"); }} className="bg-amber-500 hover:bg-amber-400 text-white px-5 py-2 rounded-lg font-bold text-sm transition-all">
-                    🔒 Unlock Keywords →
+                  <button onClick={handleCheckout} className="bg-amber-500 hover:bg-amber-400 text-white px-5 py-2 rounded-lg font-bold text-sm transition-all">
+                    🔒 Unlock Keywords — $3.99 →
                   </button>
                 </div>
               </div>
@@ -474,8 +495,8 @@ export default function App() {
               <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-2xl p-8 text-center">
                 <p className="text-2xl font-black text-white mb-2">🚀 Get Your Full Expert Report</p>
                 <p className="text-gray-400 mb-6">Unlock all critical fixes, keyword analysis, bullet rewrites, and ATS optimization</p>
-                <button onClick={() => { setPremium(true); localStorage.setItem("resumelens_premium", "true"); }} className="bg-indigo-500 hover:bg-indigo-400 text-white px-8 py-4 rounded-xl font-black text-lg transition-all">
-                  Unlock Full Report — $4.99
+                <button onClick={handleCheckout} className="bg-indigo-500 hover:bg-indigo-400 text-white px-8 py-4 rounded-xl font-black text-lg transition-all">
+                  Unlock Full Report — $3.99
                 </button>
                 <p className="text-gray-600 text-xs mt-3">One-time payment • Instant access</p>
               </div>

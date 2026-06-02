@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 
 export default function App() {
@@ -12,6 +12,22 @@ export default function App() {
   const [jobDescription, setJobDescription] = useState("");
   const [targetCompany, setTargetCompany] = useState("");
 
+  // Load saved result on startup
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("resumelens_result");
+      const savedEmail = localStorage.getItem("resumelens_email_submitted");
+      const savedIndustry = localStorage.getItem("resumelens_industry");
+      const savedCompany = localStorage.getItem("resumelens_company");
+      const savedPremium = localStorage.getItem("resumelens_premium");
+      if (saved) setResult(JSON.parse(saved));
+      if (savedEmail === "true") setEmailSubmitted(true);
+      if (savedIndustry) setIndustry(savedIndustry);
+      if (savedCompany) setTargetCompany(savedCompany);
+      if (savedPremium === "true") setPremium(true);
+    } catch (e) {}
+  }, []);
+
   const handleAnalyze = async () => {
     if (!file) return;
     setLoading(true);
@@ -23,6 +39,10 @@ export default function App() {
     try {
       const res = await axios.post("https://resumelens-cm11.onrender.com/analyze", formData);
       setResult(res.data);
+      // Save to localStorage
+      localStorage.setItem("resumelens_result", JSON.stringify(res.data));
+      localStorage.setItem("resumelens_industry", industry);
+      localStorage.setItem("resumelens_company", targetCompany);
     } catch (err) {
       alert("Something went wrong. Make sure your backend is running!");
     }
@@ -206,6 +226,7 @@ export default function App() {
                     console.log("Email save failed silently");
                   }
                   setEmailSubmitted(true);
+                  localStorage.setItem("resumelens_email_submitted", "true");
                 }
               }}
               disabled={!email}
@@ -337,7 +358,7 @@ export default function App() {
                       <p className="text-xl mb-1">🔒</p>
                       <p className="font-bold text-white">{Math.max(0, (result.critical_improvements?.length || 0) - 1)} more issues found</p>
                       <p className="text-gray-500 text-sm mt-1 mb-3">Unlock all fixes for $4.99</p>
-                      <button onClick={() => setPremium(true)} className="bg-indigo-500 hover:bg-indigo-400 text-white px-5 py-2 rounded-lg font-bold text-sm transition-all">
+                      <button onClick={() => { setPremium(true); localStorage.setItem("resumelens_premium", "true"); }} className="bg-indigo-500 hover:bg-indigo-400 text-white px-5 py-2 rounded-lg font-bold text-sm transition-all">
                         Unlock Full Report →
                       </button>
                     </div>
@@ -356,7 +377,7 @@ export default function App() {
                   ))}
                 </div>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <button onClick={() => setPremium(true)} className="bg-amber-500 hover:bg-amber-400 text-white px-5 py-2 rounded-lg font-bold text-sm transition-all">
+                  <button onClick={() => { setPremium(true); localStorage.setItem("resumelens_premium", "true"); }} className="bg-amber-500 hover:bg-amber-400 text-white px-5 py-2 rounded-lg font-bold text-sm transition-all">
                     🔒 Unlock Keywords →
                   </button>
                 </div>
@@ -448,7 +469,7 @@ export default function App() {
               <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-2xl p-8 text-center">
                 <p className="text-2xl font-black text-white mb-2">🚀 Get Your Full Expert Report</p>
                 <p className="text-gray-400 mb-6">Unlock all critical fixes, keyword analysis, bullet rewrites, and ATS optimization</p>
-                <button onClick={() => setPremium(true)} className="bg-indigo-500 hover:bg-indigo-400 text-white px-8 py-4 rounded-xl font-black text-lg transition-all">
+                <button onClick={() => { setPremium(true); localStorage.setItem("resumelens_premium", "true"); }} className="bg-indigo-500 hover:bg-indigo-400 text-white px-8 py-4 rounded-xl font-black text-lg transition-all">
                   Unlock Full Report — $4.99
                 </button>
                 <p className="text-gray-600 text-xs mt-3">One-time payment • Instant access</p>
@@ -456,7 +477,11 @@ export default function App() {
             )}
 
             <button
-              onClick={() => { setResult(null); setFile(null); setPremium(false); setEmailSubmitted(false); setIndustry(""); setJobDescription(""); setTargetCompany(""); }}
+              onClick={() => {
+                setResult(null); setFile(null); setPremium(false);
+                setEmailSubmitted(false); setIndustry(""); setJobDescription(""); setTargetCompany("");
+                localStorage.clear();
+              }}
               className="w-full text-sm text-gray-600 hover:text-gray-400 underline text-center py-2 transition-all"
             >
               ← Analyze another resume

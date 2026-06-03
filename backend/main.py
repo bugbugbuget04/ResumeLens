@@ -24,6 +24,7 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 def root():
     return {"message": "ResumeLens API is running!"}
 
+
 @app.post("/analyze")
 async def analyze_resume(
     file: UploadFile = File(...),
@@ -186,7 +187,7 @@ Return ONLY a JSON object, no markdown, no backticks:
 {{
     "rewritten_resume": "<the full rewritten resume as plain text with \\n for line breaks>",
     "changes_made": [
-        "<specific change 1 — e.g. 'Rewrote 6 bullet points with action verbs and quantified impact'>",
+        "<specific change 1>",
         "<specific change 2>",
         "<specific change 3>",
         "<specific change 4>"
@@ -209,15 +210,93 @@ ORIGINAL RESUME:
     )
 
     raw = response.choices[0].message.content.strip()
-    print("REWRITE RESPONSE:", raw[:300])
-
-    # Strip markdown fences if model adds them
     if raw.startswith("```"):
         raw = raw.split("```")[1]
         if raw.startswith("json"):
             raw = raw[4:]
     raw = raw.strip()
 
+    result = json.loads(raw)
+    return result
+
+
+@app.post("/cover-letter")
+async def generate_cover_letter(
+    file: UploadFile = File(...),
+    job_description: str = Form(""),
+    target_company: str = Form(""),
+    industry: str = Form(""),
+    tone: str = Form("professional"),  # professional | conversational | bold
+    hiring_manager: str = Form("")     # optional name
+):
+    contents = await file.read()
+    pdf = pdfplumber.open(io.BytesIO(contents))
+    text = ""
+    for page in pdf.pages:
+        text += page.extract_text() or ""
+
+    tone_guide = {
+        "professional": "formal, polished, and confident — the tone of a seasoned professional. No slang, no fluff. Every sentence earns its place.",
+        "conversational": "warm, natural, and human — like a smart person talking directly to the hiring manager. Approachable but still impressive.",
+        "bold": "punchy, direct, and memorable — opens with a hook, uses short sentences, and is confident to the point of standing out from 500 other applicants.",
+    }.get(tone, "professional, polished, and confident")
+
+    company_context = f"The target company is {target_company}. Reference {target_company}'s mission, culture, or known values naturally in the letter." if target_company else ""
+    jd_context = f"\n\nJOB DESCRIPTION:\n{job_description}" if job_description else ""
+    manager_line = f"Address it to {hiring_manager}." if hiring_manager else "Use 'Dear Hiring Manager' if the name is unknown."
+    industry_context = f"This is for a role in the {industry} industry." if industry else ""
+
+    prompt = f"""
+You are an elite US cover letter writer. You write cover letters that actually get interviews — specific, compelling, and tailored. Never generic.
+
+{company_context}
+{industry_context}
+
+TONE: {tone_guide}
+
+STRICT RULES:
+- Open with a hook — NOT "I am writing to apply for..." — that's instant rejection
+- Reference 2-3 SPECIFIC achievements or experiences directly from the resume with real details
+- If a job description is provided, mirror its language and address its exact requirements
+- If a company is named, show you know something real about them (culture, product, mission)
+- Close with a confident, specific call to action — not "I hope to hear from you"
+- Length: 3 tight paragraphs, max 350 words. No filler.
+- {manager_line}
+
+Return ONLY a JSON object, no markdown, no backticks:
+
+{{
+    "cover_letter": "<the full cover letter as plain text with \\n for line breaks>",
+    "subject_line": "<a strong email subject line for sending this cover letter>",
+    "key_points": [
+        "<main strength you led with and why>",
+        "<how you tailored it to the company/role>",
+        "<tone choice and why it fits>"
+    ]
+}}
+
+Only return the JSON. No markdown, no backticks, no explanation.
+
+RESUME:
+{text}
+{jd_context}
+"""
+
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.5,
+        max_tokens=2000,
+    )
+
+    raw = response.choices[0].message.content.strip()
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    raw = raw.strip()
+
+    print("COVER LETTER RESPONSE:", raw[:300])
     result = json.loads(raw)
     return result
 

@@ -3,6 +3,25 @@ import axios from "axios";
 
 const CHECKOUT_URL = "https://resumelens.lemonsqueezy.com/checkout/buy/aa1a1cb6-75f1-4536-b9c4-7c5553d65dbd";
 
+// Custom SVG Logo Component
+function ResumeLensLogo({ size = 32 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Document shape */}
+      <rect x="4" y="2" width="18" height="22" rx="2" fill="#6366f1" opacity="0.15" />
+      <rect x="4" y="2" width="18" height="22" rx="2" stroke="#6366f1" strokeWidth="1.5" />
+      {/* Lines representing resume text */}
+      <line x1="8" y1="8" x2="18" y2="8" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="8" y1="12" x2="16" y2="12" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" opacity="0.7" />
+      <line x1="8" y1="16" x2="18" y2="16" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" opacity="0.5" />
+      {/* Magnifying glass */}
+      <circle cx="22" cy="22" r="6" fill="#0f172a" stroke="#818cf8" strokeWidth="2" />
+      <circle cx="22" cy="22" r="3" fill="#6366f1" opacity="0.3" />
+      <line x1="26.5" y1="26.5" x2="30" y2="30" stroke="#818cf8" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export default function App() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -50,6 +69,19 @@ export default function App() {
     window.location.href = `${CHECKOUT_URL}?checkout[success_url]=${successUrl}`;
   };
 
+  // Go back to homepage (reset to upload screen)
+  const handleGoHome = () => {
+    setResult(null);
+    setFile(null);
+    setPremium(false);
+    setEmailSubmitted(false);
+    setIndustry("");
+    setJobDescription("");
+    setTargetCompany("");
+    localStorage.clear();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const handleAnalyze = async () => {
     if (!file) return;
     setLoading(true);
@@ -95,10 +127,14 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       <nav className="border-b border-gray-800 px-6 py-4 flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center font-black text-sm">RL</div>
+        {/* Clickable logo + name — takes user back to homepage */}
+        <button
+          onClick={handleGoHome}
+          className="flex items-center gap-2.5 hover:opacity-80 transition-opacity cursor-pointer"
+        >
+          <ResumeLensLogo size={32} />
           <span className="text-lg font-bold text-white">ResumeLens</span>
-        </div>
+        </button>
         <div className="flex items-center gap-4">
           <span className="text-gray-400 text-sm hidden md:block">Free AI resume analysis in 30 seconds</span>
           <button onClick={handleCheckout} className="bg-indigo-500 hover:bg-indigo-400 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all">
@@ -503,11 +539,7 @@ export default function App() {
             )}
 
             <button
-              onClick={() => {
-                setResult(null); setFile(null); setPremium(false);
-                setEmailSubmitted(false); setIndustry(""); setJobDescription(""); setTargetCompany("");
-                localStorage.clear();
-              }}
+              onClick={handleGoHome}
               className="w-full text-sm text-gray-600 hover:text-gray-400 underline text-center py-2 transition-all"
             >
               ← Analyze another resume
@@ -518,10 +550,10 @@ export default function App() {
 
       <footer className="border-t border-gray-800 py-8 mt-16">
         <div className="max-w-3xl mx-auto px-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-indigo-500 rounded-md flex items-center justify-center font-black text-xs">RL</div>
+          <button onClick={handleGoHome} className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer">
+            <ResumeLensLogo size={24} />
             <span className="text-gray-500 text-sm">ResumeLens</span>
-          </div>
+          </button>
           <p className="text-gray-600 text-xs">© 2026 ResumeLens. All rights reserved.</p>
         </div>
       </footer>

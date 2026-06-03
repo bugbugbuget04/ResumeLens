@@ -83,8 +83,8 @@ Return ONLY a JSON object with this exact structure, no markdown, no backticks:
         "improved_bullet": "<rewrite that exact bullet with specific metrics, impact, and action verbs>"
     }},
     "top_strengths": [
-        "<quote or directly reference an actual job title, company, bullet point, or skill LITERALLY found in the resume — e.g. 'Worked as Sales Associate at FreshMart for 2 months handling 50+ daily customer interactions'>",
-        "<another strength pulled directly from actual resume content — never say 'communication skills' or 'problem-solving' as standalone phrases>",
+        "<quote or directly reference an actual job title, company, bullet point, or skill LITERALLY found in the resume>",
+        "<another strength pulled directly from actual resume content>",
         "<third strength grounded in something literally written in the resume>"
     ],
     "critical_improvements": [
@@ -131,6 +131,96 @@ Resume:
     print("AI RESPONSE:", raw)
     result = json.loads(raw)
     return result
+
+
+@app.post("/rewrite")
+async def rewrite_resume(
+    file: UploadFile = File(...),
+    industry: str = Form(""),
+    job_description: str = Form(""),
+    target_company: str = Form(""),
+    analysis: str = Form("")
+):
+    contents = await file.read()
+    pdf = pdfplumber.open(io.BytesIO(contents))
+    text = ""
+    for page in pdf.pages:
+        text += page.extract_text() or ""
+
+    analysis_context = ""
+    if analysis:
+        try:
+            parsed = json.loads(analysis)
+            missing_kw = parsed.get("keyword_analysis", {}).get("missing_keywords", [])
+            improvements = parsed.get("critical_improvements", [])
+            analysis_context = f"""
+Based on the prior analysis:
+- Missing keywords to add: {", ".join(missing_kw)}
+- Critical issues to fix: {"; ".join([i.get("issue", "") for i in improvements])}
+"""
+        except:
+            pass
+
+    industry_context = f"Target industry: {industry}. Optimize for {industry} ATS systems and hiring managers." if industry else ""
+    company_context = f"Target company: {target_company}. Tailor language, keywords, and tone for {target_company}'s culture and expectations." if target_company else ""
+    jd_context = f"\n\nJOB DESCRIPTION TO OPTIMIZE FOR:\n{job_description}" if job_description else ""
+
+    prompt = f"""
+You are an expert US resume writer with 15 years of experience. Your job is to rewrite the resume below into a polished, ATS-optimized, professional document.
+
+{industry_context}
+{company_context}
+{analysis_context}
+
+REWRITING RULES:
+- Keep all real experience, companies, job titles, dates, and education — never fabricate anything
+- Rewrite every bullet point to start with a strong action verb and include impact/metrics where inferable
+- Add missing industry keywords naturally throughout the resume
+- Fix formatting: consistent structure, clear section headers (EXPERIENCE, EDUCATION, SKILLS, SUMMARY)
+- Write a strong 2-3 sentence professional summary at the top if one is missing or weak
+- Remove fluff, clichés, and weak phrases like "responsible for" or "helped with"
+- Keep the resume to 1 page worth of content (or 2 pages max for 10+ years experience)
+
+Return ONLY a JSON object, no markdown, no backticks:
+
+{{
+    "rewritten_resume": "<the full rewritten resume as plain text with \\n for line breaks>",
+    "changes_made": [
+        "<specific change 1 — e.g. 'Rewrote 6 bullet points with action verbs and quantified impact'>",
+        "<specific change 2>",
+        "<specific change 3>",
+        "<specific change 4>"
+    ],
+    "keywords_added": ["<keyword1>", "<keyword2>", "<keyword3>", "<keyword4>", "<keyword5>"]
+}}
+
+Only return the JSON. No markdown, no backticks, no explanation.
+
+ORIGINAL RESUME:
+{text}
+{jd_context}
+"""
+
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.4,
+        max_tokens=4000,
+    )
+
+    raw = response.choices[0].message.content.strip()
+    print("REWRITE RESPONSE:", raw[:300])
+
+    # Strip markdown fences if model adds them
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    raw = raw.strip()
+
+    result = json.loads(raw)
+    return result
+
 
 @app.post("/save-email")
 async def save_email(data: dict):

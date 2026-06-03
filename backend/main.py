@@ -20,6 +20,17 @@ app.add_middleware(
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
+def strip_json(raw: str) -> str:
+    """Strip markdown fences if model wraps response in them."""
+    raw = raw.strip()
+    if raw.startswith("```"):
+        parts = raw.split("```")
+        raw = parts[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    return raw.strip()
+
+
 @app.get("/")
 def root():
     return {"message": "ResumeLens API is running!"}
@@ -61,7 +72,7 @@ Return ONLY a JSON object with this exact structure, no markdown, no backticks:
 
 {{
     "overall_score": <number 0-100>,
-    "summary": "<3 sentence summary that references their actual job titles, companies, and specific gaps for their target industry — no generic statements>",
+    "summary": "<3 sentence summary that references their actual job titles, companies, and specific gaps for their target industry>",
     "section_scores": {{
         "work_experience": <number 0-100>,
         "skills": <number 0-100>,
@@ -127,11 +138,9 @@ Resume:
         messages=[{"role": "user", "content": prompt}],
         temperature=0.3,
     )
-
-    raw = response.choices[0].message.content.strip()
-    print("AI RESPONSE:", raw)
-    result = json.loads(raw)
-    return result
+    raw = strip_json(response.choices[0].message.content)
+    print("ANALYZE RESPONSE:", raw[:200])
+    return json.loads(raw)
 
 
 @app.post("/rewrite")
@@ -163,39 +172,31 @@ Based on the prior analysis:
             pass
 
     industry_context = f"Target industry: {industry}. Optimize for {industry} ATS systems and hiring managers." if industry else ""
-    company_context = f"Target company: {target_company}. Tailor language, keywords, and tone for {target_company}'s culture and expectations." if target_company else ""
+    company_context = f"Target company: {target_company}. Tailor language, keywords, and tone for {target_company}." if target_company else ""
     jd_context = f"\n\nJOB DESCRIPTION TO OPTIMIZE FOR:\n{job_description}" if job_description else ""
 
     prompt = f"""
-You are an expert US resume writer with 15 years of experience. Your job is to rewrite the resume below into a polished, ATS-optimized, professional document.
+You are an expert US resume writer with 15 years of experience. Rewrite the resume below into a polished, ATS-optimized document.
 
 {industry_context}
 {company_context}
 {analysis_context}
 
-REWRITING RULES:
-- Keep all real experience, companies, job titles, dates, and education — never fabricate anything
-- Rewrite every bullet point to start with a strong action verb and include impact/metrics where inferable
-- Add missing industry keywords naturally throughout the resume
-- Fix formatting: consistent structure, clear section headers (EXPERIENCE, EDUCATION, SKILLS, SUMMARY)
-- Write a strong 2-3 sentence professional summary at the top if one is missing or weak
-- Remove fluff, clichés, and weak phrases like "responsible for" or "helped with"
-- Keep the resume to 1 page worth of content (or 2 pages max for 10+ years experience)
+RULES:
+- Keep all real experience, companies, job titles, dates, and education — never fabricate
+- Rewrite every bullet with a strong action verb and impact/metrics where inferable
+- Add missing keywords naturally
+- Clear section headers: SUMMARY, EXPERIENCE, EDUCATION, SKILLS
+- Remove "responsible for", "helped with", "worked on"
+- 1 page content max (2 pages for 10+ years experience)
 
-Return ONLY a JSON object, no markdown, no backticks:
+Return ONLY JSON, no markdown:
 
 {{
-    "rewritten_resume": "<the full rewritten resume as plain text with \\n for line breaks>",
-    "changes_made": [
-        "<specific change 1>",
-        "<specific change 2>",
-        "<specific change 3>",
-        "<specific change 4>"
-    ],
-    "keywords_added": ["<keyword1>", "<keyword2>", "<keyword3>", "<keyword4>", "<keyword5>"]
+    "rewritten_resume": "<full resume as plain text with \\n for line breaks>",
+    "changes_made": ["<change 1>", "<change 2>", "<change 3>", "<change 4>"],
+    "keywords_added": ["<kw1>", "<kw2>", "<kw3>", "<kw4>", "<kw5>"]
 }}
-
-Only return the JSON. No markdown, no backticks, no explanation.
 
 ORIGINAL RESUME:
 {text}
@@ -208,16 +209,9 @@ ORIGINAL RESUME:
         temperature=0.4,
         max_tokens=4000,
     )
-
-    raw = response.choices[0].message.content.strip()
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-    raw = raw.strip()
-
-    result = json.loads(raw)
-    return result
+    raw = strip_json(response.choices[0].message.content)
+    print("REWRITE RESPONSE:", raw[:200])
+    return json.loads(raw)
 
 
 @app.post("/cover-letter")
@@ -226,8 +220,8 @@ async def generate_cover_letter(
     job_description: str = Form(""),
     target_company: str = Form(""),
     industry: str = Form(""),
-    tone: str = Form("professional"),  # professional | conversational | bold
-    hiring_manager: str = Form("")     # optional name
+    tone: str = Form("professional"),
+    hiring_manager: str = Form("")
 ):
     contents = await file.read()
     pdf = pdfplumber.open(io.BytesIO(contents))
@@ -236,46 +230,43 @@ async def generate_cover_letter(
         text += page.extract_text() or ""
 
     tone_guide = {
-        "professional": "formal, polished, and confident — the tone of a seasoned professional. No slang, no fluff. Every sentence earns its place.",
-        "conversational": "warm, natural, and human — like a smart person talking directly to the hiring manager. Approachable but still impressive.",
-        "bold": "punchy, direct, and memorable — opens with a hook, uses short sentences, and is confident to the point of standing out from 500 other applicants.",
+        "professional": "formal, polished, and confident. No slang, no fluff. Every sentence earns its place.",
+        "conversational": "warm, natural, human — like a smart person talking directly to the hiring manager. Approachable but impressive.",
+        "bold": "punchy, direct, memorable — opens with a hook, short sentences, confident enough to stand out from 500 applicants.",
     }.get(tone, "professional, polished, and confident")
 
-    company_context = f"The target company is {target_company}. Reference {target_company}'s mission, culture, or known values naturally in the letter." if target_company else ""
+    company_context = f"Target company is {target_company}. Reference {target_company}'s mission, culture, or values naturally." if target_company else ""
     jd_context = f"\n\nJOB DESCRIPTION:\n{job_description}" if job_description else ""
-    manager_line = f"Address it to {hiring_manager}." if hiring_manager else "Use 'Dear Hiring Manager' if the name is unknown."
-    industry_context = f"This is for a role in the {industry} industry." if industry else ""
+    manager_line = f"Address it to {hiring_manager}." if hiring_manager else "Use 'Dear Hiring Manager'."
+    industry_context = f"Role is in the {industry} industry." if industry else ""
 
     prompt = f"""
-You are an elite US cover letter writer. You write cover letters that actually get interviews — specific, compelling, and tailored. Never generic.
+You are an elite US cover letter writer. Write cover letters that get interviews — specific, compelling, tailored.
 
 {company_context}
 {industry_context}
-
 TONE: {tone_guide}
 
-STRICT RULES:
-- Open with a hook — NOT "I am writing to apply for..." — that's instant rejection
-- Reference 2-3 SPECIFIC achievements or experiences directly from the resume with real details
-- If a job description is provided, mirror its language and address its exact requirements
-- If a company is named, show you know something real about them (culture, product, mission)
-- Close with a confident, specific call to action — not "I hope to hear from you"
-- Length: 3 tight paragraphs, max 350 words. No filler.
+RULES:
+- Open with a hook — NOT "I am writing to apply for..." 
+- Reference 2-3 SPECIFIC achievements from the resume with real details
+- Mirror the job description's language if provided
+- Show genuine company knowledge if company is named
+- Close with a confident, specific call to action
+- 3 tight paragraphs, max 350 words
 - {manager_line}
 
-Return ONLY a JSON object, no markdown, no backticks:
+Return ONLY JSON, no markdown:
 
 {{
-    "cover_letter": "<the full cover letter as plain text with \\n for line breaks>",
-    "subject_line": "<a strong email subject line for sending this cover letter>",
+    "cover_letter": "<full cover letter as plain text with \\n for line breaks>",
+    "subject_line": "<strong email subject line>",
     "key_points": [
         "<main strength you led with and why>",
         "<how you tailored it to the company/role>",
         "<tone choice and why it fits>"
     ]
 }}
-
-Only return the JSON. No markdown, no backticks, no explanation.
 
 RESUME:
 {text}
@@ -288,17 +279,86 @@ RESUME:
         temperature=0.5,
         max_tokens=2000,
     )
+    raw = strip_json(response.choices[0].message.content)
+    print("COVER LETTER RESPONSE:", raw[:200])
+    return json.loads(raw)
 
-    raw = response.choices[0].message.content.strip()
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-    raw = raw.strip()
 
-    print("COVER LETTER RESPONSE:", raw[:300])
-    result = json.loads(raw)
-    return result
+@app.post("/linkedin")
+async def analyze_linkedin(
+    headline: str = Form(""),
+    about: str = Form(""),
+    experience: str = Form(""),   # optional — paste recent job titles/bullets
+    industry: str = Form(""),
+    target_role: str = Form("")
+):
+    """
+    Scores and rewrites a LinkedIn profile.
+    User pastes their headline + about section (and optionally recent experience).
+    No file upload needed — it's all text.
+    """
+    if not headline and not about:
+        return {"error": "Please provide at least your LinkedIn headline or About section."}
+
+    industry_context = f"They are targeting the {industry} industry." if industry else ""
+    role_context = f"Their target role is {target_role}." if target_role else ""
+    experience_context = f"\n\nRECENT EXPERIENCE (optional context):\n{experience}" if experience else ""
+
+    profile_text = f"HEADLINE:\n{headline}\n\nABOUT:\n{about}{experience_context}"
+
+    prompt = f"""
+You are a LinkedIn profile expert who has helped thousands of US professionals get recruited at top companies. You give specific, actionable rewrites — never generic tips.
+
+{industry_context}
+{role_context}
+
+Analyze this LinkedIn profile and return a full score + rewrite.
+
+SCORING DIMENSIONS (each 0-100):
+- headline_score: Is it keyword-rich, role-specific, and compelling? Does it say more than just job title?
+- about_score: Does it tell a story? Does it use first person? Does it have a hook, value prop, and CTA?
+- keywords_score: Are the right industry/role keywords present for recruiter searches?
+- overall_score: Weighted average
+
+REWRITE RULES:
+- Rewritten headline: max 220 characters, keyword-rich, specific, includes value prop or differentiator
+- Rewritten about: 3-4 paragraphs, first person, opens with a hook (not "I am a..."), includes measurable achievements pulled from what they shared, ends with a call to action or what they're open to
+- Never fabricate numbers or experience not mentioned
+- Use industry-appropriate keywords throughout
+
+Return ONLY JSON, no markdown, no backticks:
+
+{{
+    "overall_score": <number 0-100>,
+    "headline_score": <number 0-100>,
+    "about_score": <number 0-100>,
+    "keywords_score": <number 0-100>,
+    "score_summary": "<2 sentence summary of their profile's current state and biggest gap>",
+    "headline_feedback": "<specific critique of their current headline — what's weak and exactly why>",
+    "about_feedback": "<specific critique of their current about section>",
+    "rewritten_headline": "<new LinkedIn headline, max 220 chars, immediately copy-pasteable>",
+    "rewritten_about": "<full rewritten About section, 3-4 paragraphs, ready to paste into LinkedIn>",
+    "missing_keywords": ["<keyword recruiters search that's missing>", "<keyword>", "<keyword>", "<keyword>"],
+    "quick_wins": [
+        "<one specific, immediate change they can make today — e.g. 'Add Open To Work for X, Y, Z roles'>",
+        "<another quick win>",
+        "<third quick win>"
+    ]
+}}
+
+LINKEDIN PROFILE:
+{profile_text}
+"""
+
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.4,
+        max_tokens=3000,
+    )
+    raw = strip_json(response.choices[0].message.content)
+    print("LINKEDIN RESPONSE:", raw[:200])
+    return json.loads(raw)
 
 
 @app.post("/save-email")
@@ -307,7 +367,7 @@ async def save_email(data: dict):
         email = data.get("email")
         with open("emails.csv", "a") as f:
             f.write(f"{email}\n")
-        print("Email saved to file:", email)
+        print("Email saved:", email)
         return {"message": "Email saved!"}
     except Exception as e:
         print("Error:", str(e))

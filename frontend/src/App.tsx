@@ -208,7 +208,7 @@ export default function App() {
     if (!rewriteResult?.rewritten_resume) return;
     const htmlLines = rewriteResult.rewritten_resume.split("\n").map((line: string) => {
       const t = line.trim();
-      if (/^[A-Z\s&\/]{4,}$/.test(t) && t.length > 2) return `<h2>${t}</h2>`;
+      if (/^[A-Z\s&/]{4,}$/.test(t) && t.length > 2) return `<h2>${t}</h2>`;
       if (!t) return `<br/>`;
       return `<p>${t}</p>`;
     }).join("\n");

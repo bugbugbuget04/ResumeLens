@@ -52,7 +52,9 @@ export default function App() {
 
   const rewriteInputRef = useRef<HTMLInputElement>(null);
   const clInputRef = useRef<HTMLInputElement>(null);
+  // reuploadCount forces a re-render when a file is re-uploaded so the UI updates
   const [reuploadCount, setReuploadCount] = useState(0);
+  void reuploadCount;
 
   // Rewrite state
   const [rewriting, setRewriting] = useState(false);

@@ -48,6 +48,10 @@ export default function App() {
   const [targetCompany, setTargetCompany] = useState("");
   const fileRef = useRef<File | null>(null);
 
+  // Separate refs for each re-upload input — fixes the remount bug
+  const rewriteInputRef = useRef<HTMLInputElement>(null);
+  const clInputRef = useRef<HTMLInputElement>(null);
+
   // Rewrite state
   const [rewriting, setRewriting] = useState(false);
   const [rewriteResult, setRewriteResult] = useState<any>(null);
@@ -61,10 +65,8 @@ export default function App() {
   const [clError, setClError] = useState("");
   const [clCopied, setClCopied] = useState(false);
 
-  // LinkedIn state
-  const [liHeadline, setLiHeadline] = useState("");
-  const [liAbout, setLiAbout] = useState("");
-  const [liExperience, setLiExperience] = useState("");
+  // LinkedIn state — simplified to just 2 fields
+  const [liText, setLiText] = useState(""); // headline + about pasted together
   const [liTargetRole, setLiTargetRole] = useState("");
   const [liLoading, setLiLoading] = useState(false);
   const [liResult, setLiResult] = useState<any>(null);
@@ -115,7 +117,7 @@ export default function App() {
     setIndustry(""); setJobDescription(""); setTargetCompany("");
     setRewriteResult(null); setRewriteError("");
     setClResult(null); setClError(""); setClHiringManager("");
-    setLiResult(null); setLiError(""); setLiHeadline(""); setLiAbout(""); setLiExperience(""); setLiTargetRole("");
+    setLiResult(null); setLiError(""); setLiText(""); setLiTargetRole("");
     localStorage.clear();
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -170,11 +172,13 @@ export default function App() {
   };
 
   const handleLinkedIn = async () => {
-    if (!liHeadline && !liAbout) { setLiError("Please paste at least your LinkedIn headline or About section."); return; }
+    if (!liText.trim()) { setLiError("Please paste your LinkedIn profile text."); return; }
     setLiLoading(true); setLiError("");
     const fd = new FormData();
-    fd.append("headline", liHeadline); fd.append("about", liAbout);
-    fd.append("experience", liExperience); fd.append("industry", industry);
+    fd.append("headline", liText); // send full text as headline, backend parses it
+    fd.append("about", liText);    // also as about so backend has full context
+    fd.append("experience", "");
+    fd.append("industry", industry);
     fd.append("target_role", liTargetRole);
     try {
       const res = await axios.post(`${API}/linkedin`, fd);
@@ -197,7 +201,7 @@ export default function App() {
 <style>@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Lato',Arial,sans-serif;font-size:11.5pt;line-height:1.7;color:#1a1a1a;padding:1in 0.9in;max-width:8.5in;margin:0 auto}p{margin-bottom:6px}
 @media print{body{padding:0.7in 0.8in}}</style></head><body>${paragraphs}
-<div style="margin-top:32px;border-top:1px solid #eee;padding-top:10px;font-size:8pt;color:#aaa;text-align:center;">Written by ResumeLens AI</div></body></html>`;
+<div style="margin-top:32px;border-top:1px solid #eee;padding-top:10px;font-size:8pt;color:#aaa;text-align:center;">Written by ResumeLenz AI · resumelenz.com</div></body></html>`;
     const win = window.open("", "_blank");
     if (!win) { alert("Allow popups to download PDF."); return; }
     win.document.write(html); win.document.close(); win.focus();
@@ -217,7 +221,7 @@ export default function App() {
 *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Lato',Arial,sans-serif;font-size:11pt;line-height:1.55;color:#1a1a1a;padding:0.85in 0.8in;max-width:8.5in;margin:0 auto}
 h2{font-size:10pt;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;border-bottom:1.5px solid #1a1a1a;padding-bottom:3px;margin-top:18px;margin-bottom:6px}
 p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</style></head>
-<body>${htmlLines}<div style="margin-top:24px;border-top:1px solid #ddd;padding-top:8px;font-size:8pt;color:#999;text-align:center;">Optimized by ResumeLens</div></body></html>`;
+<body>${htmlLines}<div style="margin-top:24px;border-top:1px solid #ddd;padding-top:8px;font-size:8pt;color:#999;text-align:center;">Optimized by ResumeLenz · resumelenz.com</div></body></html>`;
     const win = window.open("", "_blank");
     if (!win) { alert("Allow popups to download PDF."); return; }
     win.document.write(html); win.document.close(); win.focus();
@@ -244,23 +248,30 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
     glassdoor: `https://www.glassdoor.com/Job/jobs.htm?sc.keyword=${encodeURIComponent(role)}&locT=N&locId=1`,
   }));
 
-  const ReUploadBlock = ({ inputId, label }: { inputId: string; label: string }) => (
+  // Fixed re-upload block using stable refs instead of document.getElementById
+  const ReUploadBlock = ({ inputRef, onFile }: { inputRef: React.RefObject<HTMLInputElement>; onFile: (f: File) => void }) => (
     <>
       <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 mb-4 flex items-start gap-2">
         <span className="text-amber-400 mt-0.5">⚠️</span>
         <div>
-          <p className="text-amber-300 text-sm font-semibold">Re-upload your resume to use {label}</p>
+          <p className="text-amber-300 text-sm font-semibold">Re-upload your resume to continue</p>
           <p className="text-amber-400/70 text-xs mt-0.5">Files are never stored — re-upload to continue</p>
         </div>
       </div>
       <div className="border border-dashed border-indigo-500/40 hover:border-indigo-400 rounded-xl p-6 mb-4 text-center cursor-pointer transition-all"
-        onClick={() => document.getElementById(inputId)?.click()}>
+        onClick={() => inputRef.current?.click()}>
         <p className="text-indigo-400 text-sm font-semibold">📄 Click to re-upload your resume PDF</p>
-        <input id={inputId} type="file" accept=".pdf" className="hidden"
-          onChange={(e) => { fileRef.current = e.target.files?.[0] || null; }} />
+        <input ref={inputRef} type="file" accept=".pdf" className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) { fileRef.current = f; onFile(f); }
+          }} />
       </div>
     </>
   );
+
+  // Track whether file has been re-uploaded (forces re-render)
+  const [reuploadCount, setReuploadCount] = useState(0);
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -547,7 +558,18 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
                 <p className="text-gray-400 text-sm mb-5">Rewrites your entire resume — stronger bullets, better keywords, clean formatting — ready to download as PDF.</p>
                 {!rewriteResult && !rewriting && (
                   <>
-                    {!fileRef.current && <ReUploadBlock inputId="rewriteFileInput" label="the rewriter" />}
+                    {!fileRef.current && (
+                      <ReUploadBlock
+                        inputRef={rewriteInputRef}
+                        onFile={() => setReuploadCount(c => c + 1)}
+                      />
+                    )}
+                    {fileRef.current && (
+                      <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-4 py-2 mb-4">
+                        <span className="text-emerald-400">✓</span>
+                        <span className="text-emerald-400 text-sm font-medium">{fileRef.current.name} ready</span>
+                      </div>
+                    )}
                     <button onClick={handleRewrite} className="w-full bg-indigo-500 hover:bg-indigo-400 text-white py-3.5 rounded-xl font-bold text-base transition-all">✨ Rewrite My Resume with AI →</button>
                     {rewriteError && <p className="text-red-400 text-sm mt-3 text-center">{rewriteError}</p>}
                   </>
@@ -611,7 +633,18 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
                 <p className="text-gray-400 text-sm mb-5">Tailored, interview-winning cover letter based on your resume{jobDescription ? " and the job description you provided" : ""}.</p>
                 {!clResult && !clLoading && (
                   <>
-                    {!fileRef.current && <ReUploadBlock inputId="clFileInput" label="the cover letter generator" />}
+                    {!fileRef.current && (
+                      <ReUploadBlock
+                        inputRef={clInputRef}
+                        onFile={() => setReuploadCount(c => c + 1)}
+                      />
+                    )}
+                    {fileRef.current && (
+                      <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-4 py-2 mb-4">
+                        <span className="text-emerald-400">✓</span>
+                        <span className="text-emerald-400 text-sm font-medium">{fileRef.current.name} ready</span>
+                      </div>
+                    )}
                     <div className="mb-4">
                       <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Tone</p>
                       <div className="grid grid-cols-3 gap-2">
@@ -688,42 +721,35 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
                     <p className="text-blue-300 text-xs font-medium">Included with your Full Report</p>
                   </div>
                 </div>
-                <p className="text-gray-400 text-sm mb-5">
-                  Paste your LinkedIn headline and About section — AI scores your profile and rewrites both so recruiters find and contact you.
+                <p className="text-gray-400 text-sm mb-2">
+                  Paste your LinkedIn profile text — headline, about section, anything — and AI scores + rewrites it so recruiters find and contact you.
+                </p>
+                <p className="text-gray-600 text-xs mb-5">
+                  💡 How to get it: Go to your LinkedIn profile → click "About" → copy the text. Then copy your headline from the top of your profile.
                 </p>
 
                 {!liResult && !liLoading && (
                   <>
                     <div className="space-y-3 mb-4">
                       <div>
-                        <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5 block">Your Current LinkedIn Headline</label>
-                        <input type="text"
-                          placeholder='e.g. "Software Engineer at Acme Corp" or "Student at XYZ University"'
-                          value={liHeadline} onChange={(e) => setLiHeadline(e.target.value)}
-                          className="w-full bg-gray-800 border border-gray-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white outline-none transition-all text-sm" />
-                      </div>
-                      <div>
-                        <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5 block">Your LinkedIn About Section</label>
+                        <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5 block">
+                          Paste Your LinkedIn Profile Text
+                        </label>
                         <textarea
-                          placeholder="Paste your full LinkedIn About / bio section here..."
-                          value={liAbout} onChange={(e) => setLiAbout(e.target.value)}
-                          rows={5} className="w-full bg-gray-800 border border-gray-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white outline-none transition-all resize-none text-sm" />
+                          placeholder={`Paste your LinkedIn headline and About section here.\n\nExample:\nHeadline: Software Engineer at Acme Corp\n\nAbout: I am a software engineer with 3 years of experience building web applications...`}
+                          value={liText} onChange={(e) => setLiText(e.target.value)}
+                          rows={8} className="w-full bg-gray-800 border border-gray-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white outline-none transition-all resize-none text-sm" />
                       </div>
                       <div>
-                        <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5 block">Recent Job Titles / Experience <span className="text-gray-600 normal-case font-normal">(optional — paste a few bullet points or titles)</span></label>
-                        <textarea
-                          placeholder="e.g. Software Engineer at Google (2022-present) — built X, led Y..."
-                          value={liExperience} onChange={(e) => setLiExperience(e.target.value)}
-                          rows={3} className="w-full bg-gray-800 border border-gray-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white outline-none transition-all resize-none text-sm" />
-                      </div>
-                      <div>
-                        <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5 block">Target Role <span className="text-gray-600 normal-case font-normal">(optional — helps tailor keywords)</span></label>
+                        <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5 block">
+                          Target Role <span className="text-gray-600 normal-case font-normal">(optional — helps tailor keywords)</span>
+                        </label>
                         <input type="text" placeholder='e.g. "Product Manager", "Data Scientist", "Marketing Lead"'
                           value={liTargetRole} onChange={(e) => setLiTargetRole(e.target.value)}
                           className="w-full bg-gray-800 border border-gray-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white outline-none transition-all text-sm" />
                       </div>
                     </div>
-                    <button onClick={handleLinkedIn} disabled={!liHeadline && !liAbout}
+                    <button onClick={handleLinkedIn} disabled={!liText.trim()}
                       className="w-full bg-blue-500 hover:bg-blue-400 disabled:opacity-40 text-white py-3.5 rounded-xl font-bold text-base transition-all">
                       💼 Analyze & Optimize My LinkedIn →
                     </button>
@@ -740,7 +766,6 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
 
                 {liResult && (
                   <div className="space-y-4">
-                    {/* Score grid */}
                     <div className="grid grid-cols-2 gap-3">
                       {[
                         { label: "Overall", score: liResult.overall_score },
@@ -757,15 +782,11 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
                         </div>
                       ))}
                     </div>
-
-                    {/* Summary */}
                     {liResult.score_summary && (
                       <div className="bg-gray-900/60 border border-gray-700 rounded-xl p-4">
                         <p className="text-gray-300 text-sm leading-relaxed">{liResult.score_summary}</p>
                       </div>
                     )}
-
-                    {/* Rewritten Headline */}
                     <div className="bg-gray-900/60 border border-blue-500/20 rounded-xl p-4">
                       <div className="flex items-center justify-between mb-2">
                         <p className="text-xs font-bold text-blue-400 uppercase tracking-wide">✨ Rewritten Headline</p>
@@ -775,10 +796,8 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
                         </button>
                       </div>
                       <p className="text-white text-sm font-semibold leading-relaxed">{liResult.rewritten_headline}</p>
-                      <p className="text-gray-600 text-xs mt-2">Feedback: {liResult.headline_feedback}</p>
+                      <p className="text-gray-600 text-xs mt-2">{liResult.headline_feedback}</p>
                     </div>
-
-                    {/* Rewritten About */}
                     <div className="bg-gray-900/60 border border-blue-500/20 rounded-xl p-4">
                       <div className="flex items-center justify-between mb-3">
                         <p className="text-xs font-bold text-blue-400 uppercase tracking-wide">✨ Rewritten About Section</p>
@@ -788,13 +807,11 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
                         </button>
                       </div>
                       <pre className="text-gray-200 text-sm leading-relaxed whitespace-pre-wrap font-sans">{liResult.rewritten_about}</pre>
-                      <p className="text-gray-600 text-xs mt-3">Feedback: {liResult.about_feedback}</p>
+                      <p className="text-gray-600 text-xs mt-3">{liResult.about_feedback}</p>
                     </div>
-
-                    {/* Missing keywords */}
                     {liResult.missing_keywords?.length > 0 && (
                       <div>
-                        <p className="text-xs font-bold text-red-400 uppercase tracking-wide mb-2">🔍 Keywords Recruiters Search That You're Missing</p>
+                        <p className="text-xs font-bold text-red-400 uppercase tracking-wide mb-2">🔍 Missing Keywords Recruiters Search For</p>
                         <div className="flex flex-wrap gap-2">
                           {liResult.missing_keywords.map((k: string) => (
                             <span key={k} className="bg-red-500/10 border border-red-500/20 text-red-400 px-3 py-1 rounded-full text-xs font-semibold">{k}</span>
@@ -802,8 +819,6 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
                         </div>
                       </div>
                     )}
-
-                    {/* Quick wins */}
                     {liResult.quick_wins?.length > 0 && (
                       <div className="bg-gray-900/60 border border-gray-700 rounded-xl p-4">
                         <p className="text-xs font-bold text-amber-400 uppercase tracking-wide mb-3">⚡ Quick Wins — Do These Today</p>
@@ -816,7 +831,6 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
                         </ul>
                       </div>
                     )}
-
                     <button onClick={() => { setLiResult(null); localStorage.removeItem("resumelens_linkedin"); }}
                       className="w-full text-xs text-gray-600 hover:text-gray-400 underline text-center py-1 transition-all">
                       ↺ Analyze a different profile
@@ -844,7 +858,7 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
                     </div>
                   ))}
                 </div>
-                <p className="text-gray-600 text-xs mt-3 text-center">Clicking these links helps support ResumeLens for free 💙</p>
+                <p className="text-gray-600 text-xs mt-3 text-center">Clicking these links helps support ResumeLenz for free 💙</p>
               </div>
             )}
 
@@ -892,9 +906,9 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
         <div className="max-w-3xl mx-auto px-4 flex justify-between items-center">
           <button onClick={handleGoHome} className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer">
             <ResumeLensLogo size={24} />
-            <span className="text-gray-500 text-sm">ResumeLens</span>
+            <span className="text-gray-500 text-sm">ResumeLenz</span>
           </button>
-          <p className="text-gray-600 text-xs">© 2026 ResumeLens. All rights reserved.</p>
+          <p className="text-gray-600 text-xs">© 2026 ResumeLenz. All rights reserved.</p>
         </div>
       </footer>
     </div>

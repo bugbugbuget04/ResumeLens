@@ -7,19 +7,19 @@ const API = "https://resumelens-cm11.onrender.com";
 function ResumeLensLogo({ size = 32 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="4" y="2" width="18" height="22" rx="2" fill="#6366f1" opacity="0.15" />
-      <rect x="4" y="2" width="18" height="22" rx="2" stroke="#6366f1" strokeWidth="1.5" />
-      <line x1="8" y1="8" x2="18" y2="8" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" />
-      <line x1="8" y1="12" x2="16" y2="12" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" opacity="0.7" />
-      <line x1="8" y1="16" x2="18" y2="16" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" opacity="0.5" />
-      <circle cx="22" cy="22" r="6" fill="#0f172a" stroke="#818cf8" strokeWidth="2" />
-      <circle cx="22" cy="22" r="3" fill="#6366f1" opacity="0.3" />
-      <line x1="26.5" y1="26.5" x2="30" y2="30" stroke="#818cf8" strokeWidth="2" strokeLinecap="round" />
+      <rect x="4" y="2" width="18" height="22" rx="2" fill="#eab308" opacity="0.15" />
+      <rect x="4" y="2" width="18" height="22" rx="2" stroke="#eab308" strokeWidth="1.5" />
+      <line x1="8" y1="8" x2="18" y2="8" stroke="#eab308" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="8" y1="12" x2="16" y2="12" stroke="#eab308" strokeWidth="1.5" strokeLinecap="round" opacity="0.7" />
+      <line x1="8" y1="16" x2="18" y2="16" stroke="#eab308" strokeWidth="1.5" strokeLinecap="round" opacity="0.5" />
+      <circle cx="22" cy="22" r="6" fill="#1c1917" stroke="#facc15" strokeWidth="2" />
+      <circle cx="22" cy="22" r="3" fill="#eab308" opacity="0.3" />
+      <line x1="26.5" y1="26.5" x2="30" y2="30" stroke="#facc15" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
 
-function Spinner({ color = "text-indigo-400" }: { color?: string }) {
+function Spinner({ color = "text-yellow-500" }: { color?: string }) {
   return (
     <svg className={`animate-spin h-5 w-5 ${color}`} viewBox="0 0 24 24" fill="none">
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -30,7 +30,7 @@ function Spinner({ color = "text-indigo-400" }: { color?: string }) {
 
 function ScoreBar({ score, color }: { score: number; color: string }) {
   return (
-    <div className="w-full bg-gray-800 rounded-full h-1.5">
+    <div className="w-full bg-stone-200 rounded-full h-1.5">
       <div className={`h-1.5 rounded-full ${color} transition-all`} style={{ width: `${score}%` }} />
     </div>
   );
@@ -46,11 +46,13 @@ export default function App() {
   const [industry, setIndustry] = useState("");
   const [jobDescription, setJobDescription] = useState("");
   const [targetCompany, setTargetCompany] = useState("");
+  const [targetRole, setTargetRole] = useState("");
+  const [experienceLevel, setExperienceLevel] = useState("");
   const fileRef = useRef<File | null>(null);
 
-  // Separate refs for each re-upload input — fixes the remount bug
   const rewriteInputRef = useRef<HTMLInputElement>(null);
   const clInputRef = useRef<HTMLInputElement>(null);
+  const [reuploadCount, setReuploadCount] = useState(0);
 
   // Rewrite state
   const [rewriting, setRewriting] = useState(false);
@@ -60,19 +62,27 @@ export default function App() {
   // Cover letter state
   const [clTone, setClTone] = useState<"professional" | "conversational" | "bold">("professional");
   const [clHiringManager, setClHiringManager] = useState("");
+  const [clWhyThisJob, setClWhyThisJob] = useState("");
   const [clLoading, setClLoading] = useState(false);
   const [clResult, setClResult] = useState<any>(null);
   const [clError, setClError] = useState("");
   const [clCopied, setClCopied] = useState(false);
 
-  // LinkedIn state — simplified to just 2 fields
-  const [liText, setLiText] = useState(""); // headline + about pasted together
+  // LinkedIn state
+  const [liText, setLiText] = useState("");
   const [liTargetRole, setLiTargetRole] = useState("");
   const [liLoading, setLiLoading] = useState(false);
   const [liResult, setLiResult] = useState<any>(null);
   const [liError, setLiError] = useState("");
   const [liCopiedHeadline, setLiCopiedHeadline] = useState(false);
   const [liCopiedAbout, setLiCopiedAbout] = useState(false);
+
+  // Feedback state
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackSent, setFeedbackSent] = useState(false);
+  const [feedbackDismissed, setFeedbackDismissed] = useState(false);
 
   useEffect(() => {
     try {
@@ -102,6 +112,14 @@ export default function App() {
     } catch (e) {}
   }, []);
 
+  // Show feedback popup 8 seconds after results appear (once per session)
+  useEffect(() => {
+    if (result && emailSubmitted && !feedbackDismissed && !feedbackSent) {
+      const timer = setTimeout(() => setShowFeedback(true), 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [result, emailSubmitted, feedbackDismissed, feedbackSent]);
+
   const handleCheckout = () => {
     if (result) localStorage.setItem("resumelens_result", JSON.stringify(result));
     if (email) localStorage.setItem("resumelens_email_submitted", "true");
@@ -114,10 +132,11 @@ export default function App() {
   const handleGoHome = () => {
     setResult(null); setFile(null); fileRef.current = null;
     setPremium(false); setEmailSubmitted(false);
-    setIndustry(""); setJobDescription(""); setTargetCompany("");
+    setIndustry(""); setJobDescription(""); setTargetCompany(""); setTargetRole(""); setExperienceLevel("");
     setRewriteResult(null); setRewriteError("");
-    setClResult(null); setClError(""); setClHiringManager("");
+    setClResult(null); setClError(""); setClHiringManager(""); setClWhyThisJob("");
     setLiResult(null); setLiError(""); setLiText(""); setLiTargetRole("");
+    setShowFeedback(false); setFeedbackDismissed(false); setFeedbackSent(false);
     localStorage.clear();
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -131,6 +150,8 @@ export default function App() {
     fd.append("industry", industry);
     fd.append("job_description", jobDescription);
     fd.append("target_company", targetCompany);
+    fd.append("target_role", targetRole);
+    fd.append("experience_level", experienceLevel);
     try {
       const res = await axios.post(`${API}/analyze`, fd);
       setResult(res.data);
@@ -147,7 +168,8 @@ export default function App() {
     const fd = new FormData();
     fd.append("file", fileRef.current);
     fd.append("industry", industry); fd.append("job_description", jobDescription);
-    fd.append("target_company", targetCompany); fd.append("analysis", JSON.stringify(result));
+    fd.append("target_company", targetCompany); fd.append("target_role", targetRole);
+    fd.append("experience_level", experienceLevel); fd.append("analysis", JSON.stringify(result));
     try {
       const res = await axios.post(`${API}/rewrite`, fd);
       setRewriteResult(res.data);
@@ -162,7 +184,9 @@ export default function App() {
     const fd = new FormData();
     fd.append("file", fileRef.current);
     fd.append("job_description", jobDescription); fd.append("target_company", targetCompany);
-    fd.append("industry", industry); fd.append("tone", clTone); fd.append("hiring_manager", clHiringManager);
+    fd.append("industry", industry); fd.append("target_role", targetRole);
+    fd.append("tone", clTone); fd.append("hiring_manager", clHiringManager);
+    fd.append("why_this_job", clWhyThisJob);
     try {
       const res = await axios.post(`${API}/cover-letter`, fd);
       setClResult(res.data);
@@ -175,8 +199,8 @@ export default function App() {
     if (!liText.trim()) { setLiError("Please paste your LinkedIn profile text."); return; }
     setLiLoading(true); setLiError("");
     const fd = new FormData();
-    fd.append("headline", liText); // send full text as headline, backend parses it
-    fd.append("about", liText);    // also as about so backend has full context
+    fd.append("headline", liText);
+    fd.append("about", liText);
     fd.append("experience", "");
     fd.append("industry", industry);
     fd.append("target_role", liTargetRole);
@@ -186,6 +210,14 @@ export default function App() {
       localStorage.setItem("resumelens_linkedin", JSON.stringify(res.data));
     } catch { setLiError("LinkedIn analysis failed — please try again."); }
     setLiLoading(false);
+  };
+
+  const handleSendFeedback = async () => {
+    try {
+      await axios.post(`${API}/feedback`, { rating: feedbackRating, message: feedbackMessage });
+    } catch {}
+    setFeedbackSent(true);
+    setTimeout(() => setShowFeedback(false), 2000);
   };
 
   const copy = (text: string, setter: (v: boolean) => void) => {
@@ -237,8 +269,8 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
     URL.revokeObjectURL(url);
   };
 
-  const sc = (s: number) => s >= 80 ? "text-emerald-400" : s >= 60 ? "text-amber-400" : "text-red-400";
-  const sbc = (s: number) => s >= 80 ? "bg-emerald-400" : s >= 60 ? "bg-amber-400" : "bg-red-400";
+  const sc = (s: number) => s >= 80 ? "text-emerald-600" : s >= 60 ? "text-yellow-600" : "text-red-500";
+  const sbc = (s: number) => s >= 80 ? "bg-emerald-500" : s >= 60 ? "bg-yellow-400" : "bg-red-400";
 
   const getJobLinks = (roles: string[]) => roles?.map((role) => ({
     role,
@@ -248,19 +280,18 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
     glassdoor: `https://www.glassdoor.com/Job/jobs.htm?sc.keyword=${encodeURIComponent(role)}&locT=N&locId=1`,
   }));
 
-  // Fixed re-upload block using stable refs instead of document.getElementById
   const ReUploadBlock = ({ inputRef, onFile }: { inputRef: React.RefObject<HTMLInputElement>; onFile: (f: File) => void }) => (
     <>
-      <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 mb-4 flex items-start gap-2">
-        <span className="text-amber-400 mt-0.5">⚠️</span>
+      <div className="bg-yellow-100 border border-yellow-300 rounded-xl px-4 py-3 mb-4 flex items-start gap-2">
+        <span className="text-yellow-600 mt-0.5">⚠️</span>
         <div>
-          <p className="text-amber-300 text-sm font-semibold">Re-upload your resume to continue</p>
-          <p className="text-amber-400/70 text-xs mt-0.5">Files are never stored — re-upload to continue</p>
+          <p className="text-yellow-800 text-sm font-semibold">Re-upload your resume to continue</p>
+          <p className="text-yellow-700/70 text-xs mt-0.5">Files are never stored — re-upload to continue</p>
         </div>
       </div>
-      <div className="border border-dashed border-indigo-500/40 hover:border-indigo-400 rounded-xl p-6 mb-4 text-center cursor-pointer transition-all"
+      <div className="border border-dashed border-yellow-400 hover:border-yellow-500 rounded-xl p-6 mb-4 text-center cursor-pointer transition-all"
         onClick={() => inputRef.current?.click()}>
-        <p className="text-indigo-400 text-sm font-semibold">📄 Click to re-upload your resume PDF</p>
+        <p className="text-yellow-700 text-sm font-semibold">📄 Click to re-upload your resume PDF</p>
         <input ref={inputRef} type="file" accept=".pdf" className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];
@@ -270,19 +301,16 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
     </>
   );
 
-  // Track whether file has been re-uploaded (forces re-render)
-  const [reuploadCount, setReuploadCount] = useState(0);
-
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <nav className="border-b border-gray-800 px-6 py-4 flex justify-between items-center">
+    <div className="min-h-screen bg-stone-50 text-stone-900">
+      <nav className="border-b border-stone-200 bg-white px-6 py-4 flex justify-between items-center">
         <button onClick={handleGoHome} className="flex items-center gap-2.5 hover:opacity-80 transition-opacity cursor-pointer">
           <ResumeLensLogo size={32} />
-          <span className="text-lg font-bold text-white">ResumeLens</span>
+          <span className="text-lg font-bold text-stone-900">ResumeLens</span>
         </button>
         <div className="flex items-center gap-4">
-          <span className="text-gray-400 text-sm hidden md:block">Free AI resume analysis in 30 seconds</span>
-          <button onClick={handleCheckout} className="bg-indigo-500 hover:bg-indigo-400 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all">
+          <span className="text-stone-500 text-sm hidden md:block">Free AI resume analysis in 30 seconds</span>
+          <button onClick={handleCheckout} className="bg-yellow-400 hover:bg-yellow-500 text-stone-900 px-4 py-2 rounded-lg text-sm font-semibold transition-all">
             Get Full Report — $3.99
           </button>
         </div>
@@ -294,70 +322,110 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
         {!result && (
           <>
             <div className="text-center mb-12">
-              <div className="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 rounded-full px-4 py-1.5 text-indigo-400 text-sm font-medium mb-6">
+              <div className="inline-flex items-center gap-2 bg-yellow-100 border border-yellow-300 rounded-full px-4 py-1.5 text-yellow-700 text-sm font-medium mb-6">
                 ✨ AI-Powered Resume Analysis
               </div>
-              <h1 className="text-5xl md:text-6xl font-black text-white mb-4 leading-tight">
-                Is Your Resume<br /><span className="text-indigo-400">Getting You Hired?</span>
+              <h1 className="text-5xl md:text-6xl font-black text-stone-900 mb-4 leading-tight">
+                Is Your Resume<br /><span className="text-yellow-500">Getting You Hired?</span>
               </h1>
-              <p className="text-gray-400 text-xl mb-3">Get an expert AI score in 30 seconds — completely free</p>
-              <div className="flex justify-center gap-6 text-sm text-gray-500">
+              <p className="text-stone-600 text-xl mb-3">Get an expert AI score in 30 seconds — completely free</p>
+              <div className="flex justify-center gap-6 text-sm text-stone-500">
                 <span>✓ ATS Analysis</span><span>✓ Expert Feedback</span><span>✓ US Job Market</span>
               </div>
             </div>
 
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8">
-              <div className="border-2 border-dashed border-gray-700 hover:border-indigo-500 rounded-xl p-12 mb-6 text-center cursor-pointer transition-all"
+            <div className="bg-white border border-stone-200 rounded-2xl p-8 shadow-sm">
+              <div className="border-2 border-dashed border-stone-300 hover:border-yellow-400 rounded-xl p-12 mb-6 text-center cursor-pointer transition-all"
                 onClick={() => document.getElementById("fileInput")?.click()}>
                 <div className="text-5xl mb-4">📄</div>
-                <p className="text-white font-semibold text-lg">Drop your resume here</p>
-                <p className="text-gray-500 text-sm mt-1">PDF files only</p>
+                <p className="text-stone-900 font-semibold text-lg">Drop your resume here</p>
+                <p className="text-stone-500 text-sm mt-1">PDF files only</p>
                 <input id="fileInput" type="file" accept=".pdf" className="hidden"
                   onChange={(e) => setFile(e.target.files?.[0] || null)} />
               </div>
               {file && (
-                <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-4 py-2 mb-4">
-                  <span className="text-emerald-400">✓</span>
-                  <span className="text-emerald-400 text-sm font-medium">{file.name} ready</span>
+                <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2 mb-4">
+                  <span className="text-emerald-600">✓</span>
+                  <span className="text-emerald-700 text-sm font-medium">{file.name} ready</span>
                 </div>
               )}
+
+              <label className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5 block">Industry</label>
               <select value={industry} onChange={(e) => setIndustry(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 focus:border-indigo-500 rounded-xl px-4 py-3 text-white mb-3 outline-none transition-all">
+                className="w-full bg-stone-50 border border-stone-300 focus:border-yellow-400 rounded-xl px-4 py-3 text-stone-900 mb-3 outline-none transition-all">
                 <option value="">Select your industry (optional)</option>
-                <option value="tech">Technology / Software</option>
-                <option value="finance">Finance / Banking</option>
-                <option value="healthcare">Healthcare / Medical</option>
-                <option value="marketing">Marketing / Advertising</option>
-                <option value="engineering">Engineering</option>
-                <option value="sales">Sales / Business Development</option>
-                <option value="design">Design / Creative</option>
-                <option value="education">Education</option>
-                <option value="legal">Legal</option>
-                <option value="consulting">Consulting</option>
+                <optgroup label="Technology">
+                  <option value="software-engineering">Software Engineering</option>
+                  <option value="data-science">Data Science / AI / ML</option>
+                  <option value="product-management">Product Management</option>
+                  <option value="devops-cloud">DevOps / Cloud / Infrastructure</option>
+                  <option value="cybersecurity">Cybersecurity</option>
+                  <option value="it-support">IT Support / SysAdmin</option>
+                  <option value="ux-ui-design">UX / UI Design</option>
+                </optgroup>
+                <optgroup label="Business & Finance">
+                  <option value="finance-banking">Finance / Banking</option>
+                  <option value="accounting">Accounting</option>
+                  <option value="consulting">Consulting</option>
+                  <option value="sales">Sales / Business Development</option>
+                  <option value="marketing">Marketing / Advertising</option>
+                  <option value="hr">Human Resources</option>
+                  <option value="operations">Operations / Supply Chain</option>
+                </optgroup>
+                <optgroup label="Other Fields">
+                  <option value="healthcare">Healthcare / Medical</option>
+                  <option value="engineering">Engineering (Mechanical/Civil/etc)</option>
+                  <option value="education">Education / Teaching</option>
+                  <option value="legal">Legal</option>
+                  <option value="creative">Creative / Design / Media</option>
+                  <option value="customer-service">Customer Service</option>
+                </optgroup>
               </select>
-              <input type="text" placeholder="🏢 Target company e.g. Google, Amazon (optional)"
+
+              <label className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5 block">Experience Level</label>
+              <select value={experienceLevel} onChange={(e) => setExperienceLevel(e.target.value)}
+                className="w-full bg-stone-50 border border-stone-300 focus:border-yellow-400 rounded-xl px-4 py-3 text-stone-900 mb-3 outline-none transition-all">
+                <option value="">Select your level (optional)</option>
+                <option value="student-intern">Student / Intern</option>
+                <option value="entry-level">Entry Level (0-2 years)</option>
+                <option value="mid-level">Mid Level (3-5 years)</option>
+                <option value="senior">Senior (6-10 years)</option>
+                <option value="lead-manager">Lead / Manager (10+ years)</option>
+                <option value="executive">Executive / Director</option>
+              </select>
+
+              <label className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5 block">Target Role</label>
+              <input type="text" placeholder='🎯 e.g. "Cybersecurity Analyst", "Product Manager" (optional)'
+                value={targetRole} onChange={(e) => setTargetRole(e.target.value)}
+                className="w-full bg-stone-50 border border-stone-300 focus:border-yellow-400 rounded-xl px-4 py-3 text-stone-900 mb-3 outline-none transition-all" />
+
+              <label className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5 block">Target Company</label>
+              <input type="text" placeholder="🏢 e.g. Google, Amazon (optional)"
                 value={targetCompany} onChange={(e) => setTargetCompany(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 focus:border-indigo-500 rounded-xl px-4 py-3 text-white mb-3 outline-none transition-all" />
-              <textarea placeholder="📋 Paste the job description here for better matching (optional)"
+                className="w-full bg-stone-50 border border-stone-300 focus:border-yellow-400 rounded-xl px-4 py-3 text-stone-900 mb-3 outline-none transition-all" />
+
+              <label className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5 block">Job Description</label>
+              <textarea placeholder="📋 Paste the full job description here for precise matching (optional)"
                 value={jobDescription} onChange={(e) => setJobDescription(e.target.value)}
-                rows={4} className="w-full bg-gray-800 border border-gray-700 focus:border-indigo-500 rounded-xl px-4 py-3 text-white mb-4 outline-none transition-all resize-none" />
+                rows={4} className="w-full bg-stone-50 border border-stone-300 focus:border-yellow-400 rounded-xl px-4 py-3 text-stone-900 mb-4 outline-none transition-all resize-none" />
+
               <button onClick={handleAnalyze} disabled={!file || loading}
-                className="w-full bg-indigo-500 hover:bg-indigo-400 disabled:opacity-40 text-white py-4 rounded-xl font-bold text-lg transition-all">
+                className="w-full bg-yellow-400 hover:bg-yellow-500 disabled:opacity-40 text-stone-900 py-4 rounded-xl font-bold text-lg transition-all">
                 {loading ? "⏳ Analyzing your resume..." : "Analyze My Resume — It's Free →"}
               </button>
-              <p className="text-center text-gray-600 text-xs mt-3">🔒 Your resume is never stored</p>
+              <p className="text-center text-stone-400 text-xs mt-3">🔒 Your resume is never stored</p>
             </div>
 
             <div className="mt-16">
-              <p className="text-center text-gray-500 text-sm font-medium uppercase tracking-widest mb-8">How it works</p>
+              <p className="text-center text-stone-400 text-sm font-medium uppercase tracking-widest mb-8">How it works</p>
               <div className="grid grid-cols-3 gap-4">
                 {[{ step: "01", title: "Upload", desc: "Drop your PDF resume" },
                   { step: "02", title: "Analyze", desc: "AI reviews every section" },
                   { step: "03", title: "Improve", desc: "Get actionable fixes" }].map((item) => (
-                  <div key={item.step} className="bg-gray-900 border border-gray-800 rounded-xl p-5 text-center">
-                    <div className="text-indigo-400 font-black text-2xl mb-2">{item.step}</div>
-                    <div className="text-white font-semibold mb-1">{item.title}</div>
-                    <div className="text-gray-500 text-sm">{item.desc}</div>
+                  <div key={item.step} className="bg-white border border-stone-200 rounded-xl p-5 text-center shadow-sm">
+                    <div className="text-yellow-500 font-black text-2xl mb-2">{item.step}</div>
+                    <div className="text-stone-900 font-semibold mb-1">{item.title}</div>
+                    <div className="text-stone-500 text-sm">{item.desc}</div>
                   </div>
                 ))}
               </div>
@@ -367,12 +435,12 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
 
         {/* ── EMAIL GATE ── */}
         {result && !emailSubmitted && (
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-10 text-center">
-            <div className="w-16 h-16 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-6">📊</div>
-            <h2 className="text-2xl font-black text-white mb-2">Your Results Are Ready!</h2>
-            <p className="text-gray-400 mb-8">Enter your email to unlock your full score and analysis</p>
+          <div className="bg-white border border-stone-200 rounded-2xl p-10 text-center shadow-sm">
+            <div className="w-16 h-16 bg-yellow-100 border border-yellow-300 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-6">📊</div>
+            <h2 className="text-2xl font-black text-stone-900 mb-2">Your Results Are Ready!</h2>
+            <p className="text-stone-600 mb-8">Enter your email to unlock your full score and analysis</p>
             <input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 focus:border-indigo-500 rounded-xl px-4 py-3 text-white text-center mb-4 outline-none transition-all" />
+              className="w-full bg-stone-50 border border-stone-300 focus:border-yellow-400 rounded-xl px-4 py-3 text-stone-900 text-center mb-4 outline-none transition-all" />
             <button onClick={async () => {
                 if (email) {
                   try { await axios.post(`${API}/save-email`, { email }); } catch {}
@@ -380,10 +448,10 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
                   localStorage.setItem("resumelens_email_submitted", "true");
                 }
               }} disabled={!email}
-              className="w-full bg-indigo-500 hover:bg-indigo-400 disabled:opacity-40 text-white py-3 rounded-xl font-bold transition-all">
+              className="w-full bg-yellow-400 hover:bg-yellow-500 disabled:opacity-40 text-stone-900 py-3 rounded-xl font-bold transition-all">
               See My Results →
             </button>
-            <p className="text-gray-600 text-xs mt-3">No spam. Unsubscribe anytime.</p>
+            <p className="text-stone-400 text-xs mt-3">No spam. Unsubscribe anytime.</p>
           </div>
         )}
 
@@ -392,27 +460,27 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
           <div className="space-y-4">
 
             {/* Score Hero */}
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 text-center">
-              <p className="text-gray-500 text-xs font-semibold uppercase tracking-widest mb-4">Overall Score</p>
+            <div className="bg-white border border-stone-200 rounded-2xl p-8 text-center shadow-sm">
+              <p className="text-stone-400 text-xs font-semibold uppercase tracking-widest mb-4">Overall Score</p>
               <div className={`text-8xl font-black ${sc(result.overall_score)}`}>
-                {result.overall_score}<span className="text-3xl text-gray-600">/100</span>
+                {result.overall_score}<span className="text-3xl text-stone-300">/100</span>
               </div>
-              <p className="text-gray-400 mt-4 max-w-lg mx-auto leading-relaxed">{result.summary}</p>
+              <p className="text-stone-600 mt-4 max-w-lg mx-auto leading-relaxed">{result.summary}</p>
               <div className="flex justify-center gap-3 mt-5 flex-wrap">
-                {result.interview_probability && <span className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 px-3 py-1 rounded-full text-sm font-medium">🎯 Interview: {result.interview_probability}</span>}
-                {result.ats_score && <span className="bg-purple-500/10 border border-purple-500/20 text-purple-400 px-3 py-1 rounded-full text-sm font-medium">🤖 ATS: {result.ats_score}/100</span>}
-                {targetCompany && <span className="bg-amber-500/10 border border-amber-500/20 text-amber-400 px-3 py-1 rounded-full text-sm font-medium">🏢 {targetCompany}</span>}
-                {industry && <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-sm font-medium">💼 {industry}</span>}
+                {result.interview_probability && <span className="bg-yellow-100 border border-yellow-300 text-yellow-700 px-3 py-1 rounded-full text-sm font-medium">🎯 Interview: {result.interview_probability}</span>}
+                {result.ats_score && <span className="bg-stone-100 border border-stone-300 text-stone-700 px-3 py-1 rounded-full text-sm font-medium">🤖 ATS: {result.ats_score}/100</span>}
+                {targetCompany && <span className="bg-orange-100 border border-orange-300 text-orange-700 px-3 py-1 rounded-full text-sm font-medium">🏢 {targetCompany}</span>}
+                {industry && <span className="bg-emerald-100 border border-emerald-300 text-emerald-700 px-3 py-1 rounded-full text-sm font-medium">💼 {industry.replace(/-/g, " ")}</span>}
               </div>
             </div>
 
             {/* Job Match */}
             {result.job_match_score && jobDescription && (
-              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-                <h2 className="font-bold text-white text-base mb-4">🎯 Job Description Match</h2>
+              <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
+                <h2 className="font-bold text-stone-900 text-base mb-4">🎯 Job Description Match</h2>
                 <div className="flex items-center gap-4 mb-3">
                   <div className={`text-5xl font-black ${sc(result.job_match_score)}`}>{result.job_match_score}%</div>
-                  <p className="text-gray-400 text-sm">{result.job_match_feedback}</p>
+                  <p className="text-stone-600 text-sm">{result.job_match_feedback}</p>
                 </div>
                 <ScoreBar score={result.job_match_score} color={sbc(result.job_match_score)} />
               </div>
@@ -420,13 +488,13 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
 
             {/* Section Scores */}
             {result.section_scores && (
-              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-                <h2 className="font-bold text-white text-base mb-5">📊 Section Scores</h2>
+              <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
+                <h2 className="font-bold text-stone-900 text-base mb-5">📊 Section Scores</h2>
                 <div className="space-y-4">
                   {Object.entries(result.section_scores).map(([key, val]: any) => (
                     <div key={key}>
                       <div className="flex justify-between text-sm mb-2">
-                        <span className="text-gray-400 capitalize">{key.replace(/_/g, " ")}</span>
+                        <span className="text-stone-500 capitalize">{key.replace(/_/g, " ")}</span>
                         <span className={`font-bold ${sc(val)}`}>{val}/100</span>
                       </div>
                       <ScoreBar score={val} color={sbc(val)} />
@@ -437,32 +505,32 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
             )}
 
             {/* Strengths */}
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-              <h2 className="font-bold text-white text-base mb-4">💪 Top Strengths</h2>
+            <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
+              <h2 className="font-bold text-stone-900 text-base mb-4">💪 Top Strengths</h2>
               <div className="space-y-2">
                 {result.top_strengths?.map((s: string, i: number) => (
-                  <div key={i} className="flex items-start gap-3 bg-emerald-500/5 border border-emerald-500/10 rounded-xl px-4 py-3">
-                    <span className="text-emerald-400 mt-0.5">✓</span>
-                    <span className="text-gray-300 text-sm">{s}</span>
+                  <div key={i} className="flex items-start gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+                    <span className="text-emerald-600 mt-0.5">✓</span>
+                    <span className="text-stone-700 text-sm">{s}</span>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Critical Improvements */}
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-              <h2 className="font-bold text-white text-base mb-4">🚨 Critical Improvements</h2>
+            <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
+              <h2 className="font-bold text-stone-900 text-base mb-4">🚨 Critical Improvements</h2>
               {result.critical_improvements?.slice(0, 1).map((item: any, i: number) => (
-                <div key={i} className="bg-red-500/5 border border-red-500/20 rounded-xl p-4 mb-3">
+                <div key={i} className="bg-red-50 border border-red-200 rounded-xl p-4 mb-3">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">{item.priority}</span>
-                    <span className="text-red-400 font-semibold text-sm">{item.section}</span>
+                    <span className="text-red-600 font-semibold text-sm">{item.section}</span>
                   </div>
-                  <p className="text-gray-400 text-sm mb-2">{item.issue}</p>
+                  <p className="text-stone-600 text-sm mb-2">{item.issue}</p>
                   {premium && (
-                    <div className="bg-gray-800 rounded-lg p-3 border border-gray-700 mt-2">
-                      <p className="text-xs text-gray-500 font-medium mb-1">✏️ How to fix:</p>
-                      <p className="text-gray-300 text-sm">{item.fix}</p>
+                    <div className="bg-stone-50 rounded-lg p-3 border border-stone-200 mt-2">
+                      <p className="text-xs text-stone-500 font-medium mb-1">✏️ How to fix:</p>
+                      <p className="text-stone-700 text-sm">{item.fix}</p>
                     </div>
                   )}
                 </div>
@@ -471,21 +539,21 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
                 <div className="relative">
                   <div className="blur-sm pointer-events-none space-y-3">
                     {result.critical_improvements?.slice(1).map((_: any, i: number) => (
-                      <div key={i} className="bg-red-500/5 border border-red-500/20 rounded-xl p-4">
+                      <div key={i} className="bg-red-50 border border-red-200 rounded-xl p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">HIGH</span>
-                          <span className="text-red-400 font-semibold text-sm">Hidden Issue</span>
+                          <span className="text-red-600 font-semibold text-sm">Hidden Issue</span>
                         </div>
-                        <p className="text-gray-400 text-sm">This critical issue is hidden...</p>
+                        <p className="text-stone-600 text-sm">This critical issue is hidden...</p>
                       </div>
                     ))}
                   </div>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="bg-gray-900 border border-gray-700 rounded-xl shadow-xl p-5 text-center">
+                    <div className="bg-white border border-stone-200 rounded-xl shadow-xl p-5 text-center">
                       <p className="text-xl mb-1">🔒</p>
-                      <p className="font-bold text-white">{Math.max(0, (result.critical_improvements?.length || 0) - 1)} more issues found</p>
-                      <p className="text-gray-500 text-sm mt-1 mb-3">Unlock all fixes for $3.99</p>
-                      <button onClick={handleCheckout} className="bg-indigo-500 hover:bg-indigo-400 text-white px-5 py-2 rounded-lg font-bold text-sm transition-all">Unlock Full Report — $3.99 →</button>
+                      <p className="font-bold text-stone-900">{Math.max(0, (result.critical_improvements?.length || 0) - 1)} more issues found</p>
+                      <p className="text-stone-500 text-sm mt-1 mb-3">Unlock all fixes for $3.99</p>
+                      <button onClick={handleCheckout} className="bg-yellow-400 hover:bg-yellow-500 text-stone-900 px-5 py-2 rounded-lg font-bold text-sm transition-all">Unlock Full Report — $3.99 →</button>
                     </div>
                   </div>
                 </div>
@@ -494,33 +562,33 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
 
             {/* Keywords */}
             {!premium ? (
-              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 relative overflow-hidden">
-                <h2 className="font-bold text-white text-base mb-4">🔑 Keyword Analysis</h2>
+              <div className="bg-white border border-stone-200 rounded-2xl p-6 relative overflow-hidden shadow-sm">
+                <h2 className="font-bold text-stone-900 text-base mb-4">🔑 Keyword Analysis</h2>
                 <div className="blur-sm pointer-events-none flex flex-wrap gap-2">
                   {["React", "Python", "SQL", "Leadership", "Agile"].map((k) => (
-                    <span key={k} className="bg-gray-800 border border-gray-700 px-3 py-1 rounded-full text-sm text-gray-400">{k}</span>
+                    <span key={k} className="bg-stone-100 border border-stone-300 px-3 py-1 rounded-full text-sm text-stone-500">{k}</span>
                   ))}
                 </div>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <button onClick={handleCheckout} className="bg-amber-500 hover:bg-amber-400 text-white px-5 py-2 rounded-lg font-bold text-sm transition-all">🔒 Unlock Keywords — $3.99 →</button>
+                  <button onClick={handleCheckout} className="bg-yellow-400 hover:bg-yellow-500 text-stone-900 px-5 py-2 rounded-lg font-bold text-sm transition-all">🔒 Unlock Keywords — $3.99 →</button>
                 </div>
               </div>
             ) : (
-              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-                <h2 className="font-bold text-white text-base mb-4">🔑 Keyword Analysis</h2>
+              <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
+                <h2 className="font-bold text-stone-900 text-base mb-4">🔑 Keyword Analysis</h2>
                 <div className="mb-4">
-                  <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wide mb-2">✓ Strong Keywords</p>
+                  <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-2">✓ Strong Keywords</p>
                   <div className="flex flex-wrap gap-2">
                     {result.keyword_analysis?.strong_keywords?.map((k: string) => (
-                      <span key={k} className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-sm">{k}</span>
+                      <span key={k} className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 py-1 rounded-full text-sm">{k}</span>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-red-400 uppercase tracking-wide mb-2">✗ Missing Keywords</p>
+                  <p className="text-xs font-semibold text-red-500 uppercase tracking-wide mb-2">✗ Missing Keywords</p>
                   <div className="flex flex-wrap gap-2">
                     {result.keyword_analysis?.missing_keywords?.map((k: string) => (
-                      <span key={k} className="bg-red-500/10 border border-red-500/20 text-red-400 px-3 py-1 rounded-full text-sm">{k}</span>
+                      <span key={k} className="bg-red-50 border border-red-200 text-red-600 px-3 py-1 rounded-full text-sm">{k}</span>
                     ))}
                   </div>
                 </div>
@@ -529,17 +597,17 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
 
             {/* Bullet Rewrite */}
             {premium && result.bullet_point_analysis && (
-              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-                <h2 className="font-bold text-white text-base mb-4">✏️ Bullet Point Rewrite</h2>
-                <p className="text-gray-500 text-sm mb-4">{result.bullet_point_analysis.feedback}</p>
+              <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
+                <h2 className="font-bold text-stone-900 text-base mb-4">✏️ Bullet Point Rewrite</h2>
+                <p className="text-stone-500 text-sm mb-4">{result.bullet_point_analysis.feedback}</p>
                 <div className="space-y-3">
-                  <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4">
-                    <p className="text-xs font-bold text-red-400 mb-2">✗ WEAK</p>
-                    <p className="text-gray-400 text-sm">{result.bullet_point_analysis.weak_bullet}</p>
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                    <p className="text-xs font-bold text-red-500 mb-2">✗ WEAK</p>
+                    <p className="text-stone-600 text-sm">{result.bullet_point_analysis.weak_bullet}</p>
                   </div>
-                  <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4">
-                    <p className="text-xs font-bold text-emerald-400 mb-2">✓ IMPROVED</p>
-                    <p className="text-gray-300 text-sm">{result.bullet_point_analysis.improved_bullet}</p>
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                    <p className="text-xs font-bold text-emerald-600 mb-2">✓ IMPROVED</p>
+                    <p className="text-stone-700 text-sm">{result.bullet_point_analysis.improved_bullet}</p>
                   </div>
                 </div>
               </div>
@@ -547,74 +615,69 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
 
             {/* ── AI RESUME REWRITER ── */}
             {premium && (
-              <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/30 rounded-2xl p-6">
+              <div className="bg-gradient-to-br from-yellow-50 to-amber-50 border border-yellow-300 rounded-2xl p-6">
                 <div className="flex items-center gap-3 mb-2">
                   <span className="text-2xl">🤖</span>
                   <div>
-                    <h2 className="font-black text-white text-lg">AI Resume Rewriter</h2>
-                    <p className="text-indigo-300 text-xs font-medium">Included with your Full Report</p>
+                    <h2 className="font-black text-stone-900 text-lg">AI Resume Rewriter</h2>
+                    <p className="text-yellow-700 text-xs font-medium">Included with your Full Report</p>
                   </div>
                 </div>
-                <p className="text-gray-400 text-sm mb-5">Rewrites your entire resume — stronger bullets, better keywords, clean formatting — ready to download as PDF.</p>
+                <p className="text-stone-600 text-sm mb-5">Rewrites your entire resume — stronger bullets, better keywords, clean formatting — ready to download as PDF.</p>
                 {!rewriteResult && !rewriting && (
                   <>
-                    {!fileRef.current && (
-                      <ReUploadBlock
-                        inputRef={rewriteInputRef}
-                        onFile={() => setReuploadCount(c => c + 1)}
-                      />
-                    )}
+                    {!fileRef.current && <ReUploadBlock inputRef={rewriteInputRef} onFile={() => setReuploadCount(c => c + 1)} />}
                     {fileRef.current && (
-                      <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-4 py-2 mb-4">
-                        <span className="text-emerald-400">✓</span>
-                        <span className="text-emerald-400 text-sm font-medium">{fileRef.current.name} ready</span>
+                      <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2 mb-4">
+                        <span className="text-emerald-600">✓</span>
+                        <span className="text-emerald-700 text-sm font-medium">{fileRef.current.name} ready</span>
                       </div>
                     )}
-                    <button onClick={handleRewrite} className="w-full bg-indigo-500 hover:bg-indigo-400 text-white py-3.5 rounded-xl font-bold text-base transition-all">✨ Rewrite My Resume with AI →</button>
-                    {rewriteError && <p className="text-red-400 text-sm mt-3 text-center">{rewriteError}</p>}
+                    <button onClick={handleRewrite} className="w-full bg-yellow-400 hover:bg-yellow-500 text-stone-900 py-3.5 rounded-xl font-bold text-base transition-all">✨ Rewrite My Resume with AI →</button>
+                    {rewriteError && <p className="text-red-500 text-sm mt-3 text-center">{rewriteError}</p>}
                   </>
                 )}
                 {rewriting && (
                   <div className="text-center py-8">
-                    <div className="inline-flex items-center gap-3 text-indigo-400"><Spinner /><span className="font-semibold">Rewriting your resume… ~20 seconds</span></div>
-                    <p className="text-gray-500 text-xs mt-2">AI is optimizing every bullet point and section</p>
+                    <div className="inline-flex items-center gap-3 text-yellow-600"><Spinner /><span className="font-semibold">Rewriting your resume… ~20 seconds</span></div>
+                    <p className="text-stone-500 text-xs mt-2">AI is optimizing every bullet point and section</p>
                   </div>
                 )}
                 {rewriteResult && (
                   <div className="space-y-4">
                     {rewriteResult.changes_made?.length > 0 && (
-                      <div className="bg-gray-900/60 border border-gray-700 rounded-xl p-4">
-                        <p className="text-xs font-bold text-emerald-400 uppercase tracking-wide mb-3">✓ Changes Made</p>
+                      <div className="bg-white border border-stone-200 rounded-xl p-4">
+                        <p className="text-xs font-bold text-emerald-600 uppercase tracking-wide mb-3">✓ Changes Made</p>
                         <ul className="space-y-1.5">
                           {rewriteResult.changes_made.map((c: string, i: number) => (
-                            <li key={i} className="flex items-start gap-2 text-sm text-gray-300"><span className="text-emerald-400 mt-0.5 shrink-0">•</span>{c}</li>
+                            <li key={i} className="flex items-start gap-2 text-sm text-stone-700"><span className="text-emerald-600 mt-0.5 shrink-0">•</span>{c}</li>
                           ))}
                         </ul>
                       </div>
                     )}
                     {rewriteResult.keywords_added?.length > 0 && (
                       <div>
-                        <p className="text-xs font-bold text-indigo-400 uppercase tracking-wide mb-2">Keywords Added</p>
+                        <p className="text-xs font-bold text-yellow-700 uppercase tracking-wide mb-2">Keywords Added</p>
                         <div className="flex flex-wrap gap-2">
                           {rewriteResult.keywords_added.map((k: string) => (
-                            <span key={k} className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 px-3 py-1 rounded-full text-xs font-semibold">{k}</span>
+                            <span key={k} className="bg-yellow-100 border border-yellow-300 text-yellow-700 px-3 py-1 rounded-full text-xs font-semibold">{k}</span>
                           ))}
                         </div>
                       </div>
                     )}
-                    <div className="bg-gray-950 border border-gray-700 rounded-xl p-4 max-h-64 overflow-y-auto">
-                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Preview</p>
-                      <pre className="text-gray-300 text-xs leading-relaxed whitespace-pre-wrap font-mono">
+                    <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 max-h-64 overflow-y-auto">
+                      <p className="text-xs font-bold text-stone-400 uppercase tracking-wide mb-3">Preview</p>
+                      <pre className="text-stone-700 text-xs leading-relaxed whitespace-pre-wrap font-mono">
                         {rewriteResult.rewritten_resume?.slice(0, 800)}{rewriteResult.rewritten_resume?.length > 800 ? "\n…" : ""}
                       </pre>
                     </div>
                     <div className="flex gap-3">
-                      <button onClick={handleDownloadResumePDF} className="flex-1 bg-indigo-500 hover:bg-indigo-400 text-white py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2">📥 Download as PDF</button>
-                      <button onClick={handleDownloadTxt} className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2">📄 Download as .txt</button>
+                      <button onClick={handleDownloadResumePDF} className="flex-1 bg-yellow-400 hover:bg-yellow-500 text-stone-900 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2">📥 Download as PDF</button>
+                      <button onClick={handleDownloadTxt} className="flex-1 bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2">📄 Download as .txt</button>
                     </div>
-                    <p className="text-gray-600 text-xs text-center">PDF opens a print dialog — choose "Save as PDF" in your browser</p>
+                    <p className="text-stone-400 text-xs text-center">PDF opens a print dialog — choose "Save as PDF" in your browser</p>
                     <button onClick={() => { setRewriteResult(null); localStorage.removeItem("resumelens_rewrite"); }}
-                      className="w-full text-xs text-gray-600 hover:text-gray-400 underline text-center py-1 transition-all">↺ Generate a new rewrite</button>
+                      className="w-full text-xs text-stone-400 hover:text-stone-600 underline text-center py-1 transition-all">↺ Generate a new rewrite</button>
                   </div>
                 )}
               </div>
@@ -622,40 +685,35 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
 
             {/* ── COVER LETTER ── */}
             {premium && (
-              <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 rounded-2xl p-6">
+              <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-300 rounded-2xl p-6">
                 <div className="flex items-center gap-3 mb-2">
                   <span className="text-2xl">✉️</span>
                   <div>
-                    <h2 className="font-black text-white text-lg">AI Cover Letter Generator</h2>
-                    <p className="text-emerald-300 text-xs font-medium">Included with your Full Report</p>
+                    <h2 className="font-black text-stone-900 text-lg">AI Cover Letter Generator</h2>
+                    <p className="text-emerald-700 text-xs font-medium">Included with your Full Report</p>
                   </div>
                 </div>
-                <p className="text-gray-400 text-sm mb-5">Tailored, interview-winning cover letter based on your resume{jobDescription ? " and the job description you provided" : ""}.</p>
+                <p className="text-stone-600 text-sm mb-5">Tailored, interview-winning cover letter based on your resume{jobDescription ? " and the job description you provided" : ""}.</p>
                 {!clResult && !clLoading && (
                   <>
-                    {!fileRef.current && (
-                      <ReUploadBlock
-                        inputRef={clInputRef}
-                        onFile={() => setReuploadCount(c => c + 1)}
-                      />
-                    )}
+                    {!fileRef.current && <ReUploadBlock inputRef={clInputRef} onFile={() => setReuploadCount(c => c + 1)} />}
                     {fileRef.current && (
-                      <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-4 py-2 mb-4">
-                        <span className="text-emerald-400">✓</span>
-                        <span className="text-emerald-400 text-sm font-medium">{fileRef.current.name} ready</span>
+                      <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2 mb-4">
+                        <span className="text-emerald-600">✓</span>
+                        <span className="text-emerald-700 text-sm font-medium">{fileRef.current.name} ready</span>
                       </div>
                     )}
                     <div className="mb-4">
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Tone</p>
+                      <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2">Tone</p>
                       <div className="grid grid-cols-3 gap-2">
                         {(["professional", "conversational", "bold"] as const).map((t) => (
                           <button key={t} onClick={() => setClTone(t)}
-                            className={`py-2 rounded-lg text-sm font-semibold border transition-all ${clTone === t ? "bg-emerald-500 border-emerald-500 text-white" : "bg-gray-800 border-gray-700 text-gray-400 hover:border-emerald-500/50"}`}>
+                            className={`py-2 rounded-lg text-sm font-semibold border transition-all ${clTone === t ? "bg-emerald-500 border-emerald-500 text-white" : "bg-white border-stone-300 text-stone-500 hover:border-emerald-400"}`}>
                             {t === "professional" ? "🎩 Professional" : t === "conversational" ? "💬 Conversational" : "⚡ Bold"}
                           </button>
                         ))}
                       </div>
-                      <p className="text-gray-600 text-xs mt-2">
+                      <p className="text-stone-500 text-xs mt-2">
                         {clTone === "professional" && "Formal, polished — ideal for corporate roles"}
                         {clTone === "conversational" && "Warm and human — great for startups and creative roles"}
                         {clTone === "bold" && "Punchy and memorable — stands out from 500 other applicants"}
@@ -663,49 +721,52 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
                     </div>
                     <input type="text" placeholder="👤 Hiring manager name (optional, e.g. Sarah Johnson)"
                       value={clHiringManager} onChange={(e) => setClHiringManager(e.target.value)}
-                      className="w-full bg-gray-800 border border-gray-700 focus:border-emerald-500 rounded-xl px-4 py-3 text-white mb-4 outline-none transition-all text-sm" />
-                    <button onClick={handleCoverLetter} className="w-full bg-emerald-500 hover:bg-emerald-400 text-white py-3.5 rounded-xl font-bold text-base transition-all">✉️ Generate My Cover Letter →</button>
-                    {clError && <p className="text-red-400 text-sm mt-3 text-center">{clError}</p>}
+                      className="w-full bg-white border border-stone-300 focus:border-emerald-400 rounded-xl px-4 py-3 text-stone-900 mb-3 outline-none transition-all text-sm" />
+                    <textarea placeholder="💭 Why do you want this job? One line makes your letter far more personal (optional)"
+                      value={clWhyThisJob} onChange={(e) => setClWhyThisJob(e.target.value)}
+                      rows={2} className="w-full bg-white border border-stone-300 focus:border-emerald-400 rounded-xl px-4 py-3 text-stone-900 mb-4 outline-none transition-all text-sm resize-none" />
+                    <button onClick={handleCoverLetter} className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3.5 rounded-xl font-bold text-base transition-all">✉️ Generate My Cover Letter →</button>
+                    {clError && <p className="text-red-500 text-sm mt-3 text-center">{clError}</p>}
                   </>
                 )}
                 {clLoading && (
                   <div className="text-center py-8">
-                    <div className="inline-flex items-center gap-3 text-emerald-400"><Spinner color="text-emerald-400" /><span className="font-semibold">Writing your cover letter… ~15 seconds</span></div>
-                    <p className="text-gray-500 text-xs mt-2">Tailoring every paragraph to your experience</p>
+                    <div className="inline-flex items-center gap-3 text-emerald-600"><Spinner color="text-emerald-600" /><span className="font-semibold">Writing your cover letter… ~15 seconds</span></div>
+                    <p className="text-stone-500 text-xs mt-2">Tailoring every paragraph to your experience</p>
                   </div>
                 )}
                 {clResult && (
                   <div className="space-y-4">
                     {clResult.subject_line && (
-                      <div className="bg-gray-900/60 border border-gray-700 rounded-xl p-4">
-                        <p className="text-xs font-bold text-emerald-400 uppercase tracking-wide mb-1">📧 Suggested Email Subject</p>
-                        <p className="text-white text-sm font-semibold">{clResult.subject_line}</p>
+                      <div className="bg-white border border-stone-200 rounded-xl p-4">
+                        <p className="text-xs font-bold text-emerald-600 uppercase tracking-wide mb-1">📧 Suggested Email Subject</p>
+                        <p className="text-stone-900 text-sm font-semibold">{clResult.subject_line}</p>
                       </div>
                     )}
                     {clResult.key_points?.length > 0 && (
-                      <div className="bg-gray-900/60 border border-gray-700 rounded-xl p-4">
-                        <p className="text-xs font-bold text-emerald-400 uppercase tracking-wide mb-3">✓ How It Was Tailored</p>
+                      <div className="bg-white border border-stone-200 rounded-xl p-4">
+                        <p className="text-xs font-bold text-emerald-600 uppercase tracking-wide mb-3">✓ How It Was Tailored</p>
                         <ul className="space-y-1.5">
                           {clResult.key_points.map((pt: string, i: number) => (
-                            <li key={i} className="flex items-start gap-2 text-sm text-gray-300"><span className="text-emerald-400 mt-0.5 shrink-0">•</span>{pt}</li>
+                            <li key={i} className="flex items-start gap-2 text-sm text-stone-700"><span className="text-emerald-600 mt-0.5 shrink-0">•</span>{pt}</li>
                           ))}
                         </ul>
                       </div>
                     )}
-                    <div className="bg-gray-950 border border-gray-700 rounded-xl p-5">
-                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Cover Letter</p>
-                      <pre className="text-gray-200 text-sm leading-relaxed whitespace-pre-wrap font-sans">{clResult.cover_letter}</pre>
+                    <div className="bg-stone-50 border border-stone-200 rounded-xl p-5">
+                      <p className="text-xs font-bold text-stone-400 uppercase tracking-wide mb-3">Cover Letter</p>
+                      <pre className="text-stone-800 text-sm leading-relaxed whitespace-pre-wrap font-sans">{clResult.cover_letter}</pre>
                     </div>
                     <div className="flex gap-3">
                       <button onClick={() => copy(clResult.cover_letter, setClCopied)}
-                        className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${clCopied ? "bg-emerald-600 text-white" : "bg-emerald-500 hover:bg-emerald-400 text-white"}`}>
+                        className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${clCopied ? "bg-emerald-600 text-white" : "bg-emerald-500 hover:bg-emerald-600 text-white"}`}>
                         {clCopied ? "✓ Copied!" : "📋 Copy to Clipboard"}
                       </button>
-                      <button onClick={handleDownloadCLPDF} className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2">📥 Download as PDF</button>
+                      <button onClick={handleDownloadCLPDF} className="flex-1 bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2">📥 Download as PDF</button>
                     </div>
-                    <p className="text-gray-600 text-xs text-center">PDF opens a print dialog — choose "Save as PDF"</p>
+                    <p className="text-stone-400 text-xs text-center">PDF opens a print dialog — choose "Save as PDF"</p>
                     <button onClick={() => { setClResult(null); localStorage.removeItem("resumelens_coverletter"); }}
-                      className="w-full text-xs text-gray-600 hover:text-gray-400 underline text-center py-1 transition-all">↺ Generate a new cover letter</button>
+                      className="w-full text-xs text-stone-400 hover:text-stone-600 underline text-center py-1 transition-all">↺ Generate a new cover letter</button>
                   </div>
                 )}
               </div>
@@ -713,18 +774,18 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
 
             {/* ── LINKEDIN ANALYZER ── */}
             {premium && (
-              <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/30 rounded-2xl p-6">
+              <div className="bg-gradient-to-br from-stone-100 to-stone-50 border border-stone-300 rounded-2xl p-6">
                 <div className="flex items-center gap-3 mb-2">
                   <span className="text-2xl">💼</span>
                   <div>
-                    <h2 className="font-black text-white text-lg">LinkedIn Profile Optimizer</h2>
-                    <p className="text-blue-300 text-xs font-medium">Included with your Full Report</p>
+                    <h2 className="font-black text-stone-900 text-lg">LinkedIn Profile Optimizer</h2>
+                    <p className="text-stone-500 text-xs font-medium">Included with your Full Report</p>
                   </div>
                 </div>
-                <p className="text-gray-400 text-sm mb-2">
+                <p className="text-stone-600 text-sm mb-2">
                   Paste your LinkedIn profile text — headline, about section, anything — and AI scores + rewrites it so recruiters find and contact you.
                 </p>
-                <p className="text-gray-600 text-xs mb-5">
+                <p className="text-stone-400 text-xs mb-5">
                   💡 How to get it: Go to your LinkedIn profile → click "About" → copy the text. Then copy your headline from the top of your profile.
                 </p>
 
@@ -732,35 +793,31 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
                   <>
                     <div className="space-y-3 mb-4">
                       <div>
-                        <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5 block">
-                          Paste Your LinkedIn Profile Text
-                        </label>
+                        <label className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5 block">Paste Your LinkedIn Profile Text</label>
                         <textarea
-                          placeholder={`Paste your LinkedIn headline and About section here.\n\nExample:\nHeadline: Software Engineer at Acme Corp\n\nAbout: I am a software engineer with 3 years of experience building web applications...`}
+                          placeholder={`Paste your LinkedIn headline and About section here.\n\nExample:\nHeadline: Software Engineer at Acme Corp\n\nAbout: I am a software engineer with 3 years of experience...`}
                           value={liText} onChange={(e) => setLiText(e.target.value)}
-                          rows={8} className="w-full bg-gray-800 border border-gray-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white outline-none transition-all resize-none text-sm" />
+                          rows={8} className="w-full bg-white border border-stone-300 focus:border-yellow-400 rounded-xl px-4 py-3 text-stone-900 outline-none transition-all resize-none text-sm" />
                       </div>
                       <div>
-                        <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5 block">
-                          Target Role <span className="text-gray-600 normal-case font-normal">(optional — helps tailor keywords)</span>
-                        </label>
-                        <input type="text" placeholder='e.g. "Product Manager", "Data Scientist", "Marketing Lead"'
+                        <label className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5 block">Target Role <span className="text-stone-400 normal-case font-normal">(optional)</span></label>
+                        <input type="text" placeholder='e.g. "Product Manager", "Data Scientist"'
                           value={liTargetRole} onChange={(e) => setLiTargetRole(e.target.value)}
-                          className="w-full bg-gray-800 border border-gray-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white outline-none transition-all text-sm" />
+                          className="w-full bg-white border border-stone-300 focus:border-yellow-400 rounded-xl px-4 py-3 text-stone-900 outline-none transition-all text-sm" />
                       </div>
                     </div>
                     <button onClick={handleLinkedIn} disabled={!liText.trim()}
-                      className="w-full bg-blue-500 hover:bg-blue-400 disabled:opacity-40 text-white py-3.5 rounded-xl font-bold text-base transition-all">
+                      className="w-full bg-stone-800 hover:bg-stone-900 disabled:opacity-40 text-white py-3.5 rounded-xl font-bold text-base transition-all">
                       💼 Analyze & Optimize My LinkedIn →
                     </button>
-                    {liError && <p className="text-red-400 text-sm mt-3 text-center">{liError}</p>}
+                    {liError && <p className="text-red-500 text-sm mt-3 text-center">{liError}</p>}
                   </>
                 )}
 
                 {liLoading && (
                   <div className="text-center py-8">
-                    <div className="inline-flex items-center gap-3 text-blue-400"><Spinner color="text-blue-400" /><span className="font-semibold">Analyzing your LinkedIn profile… ~15 seconds</span></div>
-                    <p className="text-gray-500 text-xs mt-2">AI is scoring and rewriting your headline and About section</p>
+                    <div className="inline-flex items-center gap-3 text-stone-700"><Spinner color="text-stone-700" /><span className="font-semibold">Analyzing your LinkedIn profile… ~15 seconds</span></div>
+                    <p className="text-stone-500 text-xs mt-2">AI is scoring and rewriting your headline and About section</p>
                   </div>
                 )}
 
@@ -773,9 +830,9 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
                         { label: "About Section", score: liResult.about_score },
                         { label: "Keywords", score: liResult.keywords_score },
                       ].map(({ label, score }) => (
-                        <div key={label} className="bg-gray-900/60 border border-gray-700 rounded-xl p-4">
+                        <div key={label} className="bg-white border border-stone-200 rounded-xl p-4">
                           <div className="flex justify-between items-center mb-2">
-                            <span className="text-gray-400 text-xs font-semibold">{label}</span>
+                            <span className="text-stone-500 text-xs font-semibold">{label}</span>
                             <span className={`font-black text-lg ${sc(score)}`}>{score}</span>
                           </div>
                           <ScoreBar score={score} color={sbc(score)} />
@@ -783,56 +840,56 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
                       ))}
                     </div>
                     {liResult.score_summary && (
-                      <div className="bg-gray-900/60 border border-gray-700 rounded-xl p-4">
-                        <p className="text-gray-300 text-sm leading-relaxed">{liResult.score_summary}</p>
+                      <div className="bg-white border border-stone-200 rounded-xl p-4">
+                        <p className="text-stone-700 text-sm leading-relaxed">{liResult.score_summary}</p>
                       </div>
                     )}
-                    <div className="bg-gray-900/60 border border-blue-500/20 rounded-xl p-4">
+                    <div className="bg-white border border-stone-300 rounded-xl p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs font-bold text-blue-400 uppercase tracking-wide">✨ Rewritten Headline</p>
+                        <p className="text-xs font-bold text-stone-700 uppercase tracking-wide">✨ Rewritten Headline</p>
                         <button onClick={() => copy(liResult.rewritten_headline, setLiCopiedHeadline)}
-                          className={`text-xs font-bold px-3 py-1 rounded-lg transition-all ${liCopiedHeadline ? "bg-blue-600 text-white" : "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"}`}>
+                          className={`text-xs font-bold px-3 py-1 rounded-lg transition-all ${liCopiedHeadline ? "bg-stone-800 text-white" : "bg-stone-200 text-stone-700 hover:bg-stone-300"}`}>
                           {liCopiedHeadline ? "✓ Copied" : "Copy"}
                         </button>
                       </div>
-                      <p className="text-white text-sm font-semibold leading-relaxed">{liResult.rewritten_headline}</p>
-                      <p className="text-gray-600 text-xs mt-2">{liResult.headline_feedback}</p>
+                      <p className="text-stone-900 text-sm font-semibold leading-relaxed">{liResult.rewritten_headline}</p>
+                      <p className="text-stone-400 text-xs mt-2">{liResult.headline_feedback}</p>
                     </div>
-                    <div className="bg-gray-900/60 border border-blue-500/20 rounded-xl p-4">
+                    <div className="bg-white border border-stone-300 rounded-xl p-4">
                       <div className="flex items-center justify-between mb-3">
-                        <p className="text-xs font-bold text-blue-400 uppercase tracking-wide">✨ Rewritten About Section</p>
+                        <p className="text-xs font-bold text-stone-700 uppercase tracking-wide">✨ Rewritten About Section</p>
                         <button onClick={() => copy(liResult.rewritten_about, setLiCopiedAbout)}
-                          className={`text-xs font-bold px-3 py-1 rounded-lg transition-all ${liCopiedAbout ? "bg-blue-600 text-white" : "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"}`}>
+                          className={`text-xs font-bold px-3 py-1 rounded-lg transition-all ${liCopiedAbout ? "bg-stone-800 text-white" : "bg-stone-200 text-stone-700 hover:bg-stone-300"}`}>
                           {liCopiedAbout ? "✓ Copied" : "Copy"}
                         </button>
                       </div>
-                      <pre className="text-gray-200 text-sm leading-relaxed whitespace-pre-wrap font-sans">{liResult.rewritten_about}</pre>
-                      <p className="text-gray-600 text-xs mt-3">{liResult.about_feedback}</p>
+                      <pre className="text-stone-800 text-sm leading-relaxed whitespace-pre-wrap font-sans">{liResult.rewritten_about}</pre>
+                      <p className="text-stone-400 text-xs mt-3">{liResult.about_feedback}</p>
                     </div>
                     {liResult.missing_keywords?.length > 0 && (
                       <div>
-                        <p className="text-xs font-bold text-red-400 uppercase tracking-wide mb-2">🔍 Missing Keywords Recruiters Search For</p>
+                        <p className="text-xs font-bold text-red-500 uppercase tracking-wide mb-2">🔍 Missing Keywords Recruiters Search For</p>
                         <div className="flex flex-wrap gap-2">
                           {liResult.missing_keywords.map((k: string) => (
-                            <span key={k} className="bg-red-500/10 border border-red-500/20 text-red-400 px-3 py-1 rounded-full text-xs font-semibold">{k}</span>
+                            <span key={k} className="bg-red-50 border border-red-200 text-red-600 px-3 py-1 rounded-full text-xs font-semibold">{k}</span>
                           ))}
                         </div>
                       </div>
                     )}
                     {liResult.quick_wins?.length > 0 && (
-                      <div className="bg-gray-900/60 border border-gray-700 rounded-xl p-4">
-                        <p className="text-xs font-bold text-amber-400 uppercase tracking-wide mb-3">⚡ Quick Wins — Do These Today</p>
+                      <div className="bg-white border border-stone-200 rounded-xl p-4">
+                        <p className="text-xs font-bold text-yellow-700 uppercase tracking-wide mb-3">⚡ Quick Wins — Do These Today</p>
                         <ul className="space-y-2">
                           {liResult.quick_wins.map((w: string, i: number) => (
-                            <li key={i} className="flex items-start gap-2 text-sm text-gray-300">
-                              <span className="text-amber-400 mt-0.5 shrink-0">{i + 1}.</span>{w}
+                            <li key={i} className="flex items-start gap-2 text-sm text-stone-700">
+                              <span className="text-yellow-600 mt-0.5 shrink-0">{i + 1}.</span>{w}
                             </li>
                           ))}
                         </ul>
                       </div>
                     )}
                     <button onClick={() => { setLiResult(null); localStorage.removeItem("resumelens_linkedin"); }}
-                      className="w-full text-xs text-gray-600 hover:text-gray-400 underline text-center py-1 transition-all">
+                      className="w-full text-xs text-stone-400 hover:text-stone-600 underline text-center py-1 transition-all">
                       ↺ Analyze a different profile
                     </button>
                   </div>
@@ -842,33 +899,33 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
 
             {/* Job Board Links */}
             {result.target_roles && (
-              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-                <h2 className="font-bold text-white text-base mb-2">🔎 Find Matching Jobs</h2>
-                <p className="text-gray-500 text-sm mb-4">Based on your profile, apply to these roles now:</p>
+              <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
+                <h2 className="font-bold text-stone-900 text-base mb-2">🔎 Find Matching Jobs</h2>
+                <p className="text-stone-500 text-sm mb-4">Based on your profile, apply to these roles now:</p>
                 <div className="space-y-3">
                   {getJobLinks(result.target_roles)?.map((item: any, i: number) => (
-                    <div key={i} className="bg-gray-800 border border-gray-700 rounded-xl p-4">
-                      <p className="text-white font-semibold text-sm mb-3">{item.role}</p>
+                    <div key={i} className="bg-stone-50 border border-stone-200 rounded-xl p-4">
+                      <p className="text-stone-900 font-semibold text-sm mb-3">{item.role}</p>
                       <div className="flex flex-wrap gap-2">
-                        <a href={item.indeed} target="_blank" rel="noopener noreferrer" className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-indigo-500/20 transition-all">Indeed →</a>
-                        <a href={item.linkedin} target="_blank" rel="noopener noreferrer" className="bg-blue-500/10 border border-blue-500/20 text-blue-400 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-500/20 transition-all">LinkedIn →</a>
-                        <a href={item.ziprecruiter} target="_blank" rel="noopener noreferrer" className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-emerald-500/20 transition-all">ZipRecruiter →</a>
-                        <a href={item.glassdoor} target="_blank" rel="noopener noreferrer" className="bg-pink-500/10 border border-pink-500/20 text-pink-400 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-pink-500/20 transition-all">Glassdoor →</a>
+                        <a href={item.indeed} target="_blank" rel="noopener noreferrer" className="bg-yellow-100 border border-yellow-300 text-yellow-700 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-yellow-200 transition-all">Indeed →</a>
+                        <a href={item.linkedin} target="_blank" rel="noopener noreferrer" className="bg-blue-100 border border-blue-300 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-200 transition-all">LinkedIn →</a>
+                        <a href={item.ziprecruiter} target="_blank" rel="noopener noreferrer" className="bg-emerald-100 border border-emerald-300 text-emerald-700 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-emerald-200 transition-all">ZipRecruiter →</a>
+                        <a href={item.glassdoor} target="_blank" rel="noopener noreferrer" className="bg-pink-100 border border-pink-300 text-pink-700 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-pink-200 transition-all">Glassdoor →</a>
                       </div>
                     </div>
                   ))}
                 </div>
-                <p className="text-gray-600 text-xs mt-3 text-center">Clicking these links helps support ResumeLenz for free 💙</p>
+                <p className="text-stone-400 text-xs mt-3 text-center">Clicking these links helps support ResumeLenz for free 💛</p>
               </div>
             )}
 
             {/* Target Roles */}
             {result.target_roles && (
-              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-                <h2 className="font-bold text-white text-base mb-4">🎯 Best Fit Roles</h2>
+              <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
+                <h2 className="font-bold text-stone-900 text-base mb-4">🎯 Best Fit Roles</h2>
                 <div className="flex flex-wrap gap-2">
                   {result.target_roles?.map((r: string, i: number) => (
-                    <span key={i} className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 px-4 py-2 rounded-full text-sm font-semibold">{r}</span>
+                    <span key={i} className="bg-yellow-100 border border-yellow-300 text-yellow-700 px-4 py-2 rounded-full text-sm font-semibold">{r}</span>
                   ))}
                 </div>
               </div>
@@ -876,41 +933,78 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
 
             {/* Free CTA */}
             {!premium && (
-              <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-2xl p-8 text-center">
-                <p className="text-2xl font-black text-white mb-2">🚀 Get Your Full Expert Report</p>
-                <p className="text-gray-400 mb-2">Unlock all critical fixes, keyword analysis, bullet rewrites, and ATS optimization</p>
+              <div className="bg-gradient-to-br from-yellow-100 to-amber-100 border border-yellow-300 rounded-2xl p-8 text-center">
+                <p className="text-2xl font-black text-stone-900 mb-2">🚀 Get Your Full Expert Report</p>
+                <p className="text-stone-600 mb-2">Unlock all critical fixes, keyword analysis, bullet rewrites, and ATS optimization</p>
                 <div className="flex flex-wrap justify-center gap-2 text-sm mb-6">
-                  <span className="text-indigo-400 font-semibold">✨ AI Resume Rewrite</span>
-                  <span className="text-gray-600">•</span>
-                  <span className="text-emerald-400 font-semibold">✉️ Cover Letter</span>
-                  <span className="text-gray-600">•</span>
-                  <span className="text-blue-400 font-semibold">💼 LinkedIn Optimizer</span>
-                  <span className="text-gray-600">•</span>
-                  <span className="text-purple-400 font-semibold">📥 PDF Downloads</span>
+                  <span className="text-yellow-700 font-semibold">✨ AI Resume Rewrite</span>
+                  <span className="text-stone-400">•</span>
+                  <span className="text-emerald-600 font-semibold">✉️ Cover Letter</span>
+                  <span className="text-stone-400">•</span>
+                  <span className="text-stone-700 font-semibold">💼 LinkedIn Optimizer</span>
+                  <span className="text-stone-400">•</span>
+                  <span className="text-orange-600 font-semibold">📥 PDF Downloads</span>
                 </div>
-                <button onClick={handleCheckout} className="bg-indigo-500 hover:bg-indigo-400 text-white px-8 py-4 rounded-xl font-black text-lg transition-all">
+                <button onClick={handleCheckout} className="bg-yellow-400 hover:bg-yellow-500 text-stone-900 px-8 py-4 rounded-xl font-black text-lg transition-all">
                   Unlock Full Report — $3.99
                 </button>
-                <p className="text-gray-600 text-xs mt-3">One-time payment • Instant access • Everything included</p>
+                <p className="text-stone-500 text-xs mt-3">One-time payment • Instant access • Everything included</p>
               </div>
             )}
 
-            <button onClick={handleGoHome} className="w-full text-sm text-gray-600 hover:text-gray-400 underline text-center py-2 transition-all">
+            <button onClick={handleGoHome} className="w-full text-sm text-stone-400 hover:text-stone-600 underline text-center py-2 transition-all">
               ← Analyze another resume
             </button>
           </div>
         )}
       </div>
 
-      <footer className="border-t border-gray-800 py-8 mt-16">
+      {/* ── FEEDBACK POPUP ── */}
+      {showFeedback && (
+        <div className="fixed bottom-6 right-6 z-50 w-80 bg-white border border-stone-200 rounded-2xl shadow-2xl p-5 animate-[fadeIn_0.3s_ease]">
+          <button onClick={() => { setShowFeedback(false); setFeedbackDismissed(true); }}
+            className="absolute top-3 right-3 text-stone-400 hover:text-stone-600 text-lg leading-none">×</button>
+          {!feedbackSent ? (
+            <>
+              <p className="font-bold text-stone-900 text-sm mb-1">How's your experience? 💛</p>
+              <p className="text-stone-500 text-xs mb-3">Your feedback helps us improve ResumeLens</p>
+              <div className="flex gap-1 mb-3">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button key={star} onClick={() => setFeedbackRating(star)}
+                    className={`text-2xl transition-all ${star <= feedbackRating ? "grayscale-0 scale-110" : "grayscale opacity-40"}`}>
+                    ⭐
+                  </button>
+                ))}
+              </div>
+              <textarea placeholder="Anything we can improve? (optional)"
+                value={feedbackMessage} onChange={(e) => setFeedbackMessage(e.target.value)}
+                rows={2} className="w-full bg-stone-50 border border-stone-300 focus:border-yellow-400 rounded-lg px-3 py-2 text-stone-900 text-sm outline-none transition-all resize-none mb-3" />
+              <button onClick={handleSendFeedback} disabled={feedbackRating === 0}
+                className="w-full bg-yellow-400 hover:bg-yellow-500 disabled:opacity-40 text-stone-900 py-2 rounded-lg font-bold text-sm transition-all">
+                Send Feedback
+              </button>
+            </>
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-3xl mb-2">🎉</p>
+              <p className="font-bold text-stone-900 text-sm">Thank you!</p>
+              <p className="text-stone-500 text-xs mt-1">Your feedback means a lot.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      <footer className="border-t border-stone-200 bg-white py-8 mt-16">
         <div className="max-w-3xl mx-auto px-4 flex justify-between items-center">
           <button onClick={handleGoHome} className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer">
             <ResumeLensLogo size={24} />
-            <span className="text-gray-500 text-sm">ResumeLenz</span>
+            <span className="text-stone-500 text-sm">ResumeLenz</span>
           </button>
-          <p className="text-gray-600 text-xs">© 2026 ResumeLenz. All rights reserved.</p>
+          <p className="text-stone-400 text-xs">© 2026 ResumeLenz. All rights reserved.</p>
         </div>
       </footer>
+
+      <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
     </div>
   );
 }

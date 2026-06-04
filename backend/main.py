@@ -20,6 +20,7 @@ app.add_middleware(
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
+
 def strip_json(raw: str) -> str:
     """Strip markdown fences if model wraps response in them."""
     raw = raw.strip()
@@ -41,7 +42,9 @@ async def analyze_resume(
     file: UploadFile = File(...),
     industry: str = Form(""),
     job_description: str = Form(""),
-    target_company: str = Form("")
+    target_company: str = Form(""),
+    target_role: str = Form(""),
+    experience_level: str = Form("")
 ):
     contents = await file.read()
     pdf = pdfplumber.open(io.BytesIO(contents))
@@ -51,6 +54,8 @@ async def analyze_resume(
 
     industry_context = f"The candidate is targeting the {industry} industry. Tailor ALL feedback specifically for what {industry} employers and ATS systems look for." if industry else ""
     company_context = f"The target company is {target_company}. Research what {target_company} specifically looks for in candidates — their culture, known ATS keywords, hiring bar, and role expectations — and reference this directly in your feedback." if target_company else ""
+    role_context = f"The candidate is specifically targeting the role of '{target_role}'. Evaluate the resume against what this exact role requires." if target_role else ""
+    level_context = f"The candidate's experience level is: {experience_level}. CRITICAL: only suggest roles and feedback appropriate for this level — never suggest senior roles to an entry-level candidate or vice versa." if experience_level else ""
     jd_context = f"\n\nJOB DESCRIPTION TO MATCH AGAINST:\n{job_description}" if job_description else ""
 
     prompt = f"""
@@ -58,6 +63,8 @@ You are a brutally honest but constructive US resume coach with 15 years of expe
 
 {industry_context}
 {company_context}
+{role_context}
+{level_context}
 
 STRICT RULES YOU MUST FOLLOW:
 - Every piece of feedback MUST reference specific content from the actual resume (real job titles, real company names, real bullet points, real skills listed)
@@ -149,6 +156,8 @@ async def rewrite_resume(
     industry: str = Form(""),
     job_description: str = Form(""),
     target_company: str = Form(""),
+    target_role: str = Form(""),
+    experience_level: str = Form(""),
     analysis: str = Form("")
 ):
     contents = await file.read()
@@ -173,6 +182,8 @@ Based on the prior analysis:
 
     industry_context = f"Target industry: {industry}. Optimize for {industry} ATS systems and hiring managers." if industry else ""
     company_context = f"Target company: {target_company}. Tailor language, keywords, and tone for {target_company}." if target_company else ""
+    role_context = f"Target role: {target_role}. Optimize the resume specifically for this role." if target_role else ""
+    level_context = f"Experience level: {experience_level}. Keep the seniority of language appropriate to this level." if experience_level else ""
     jd_context = f"\n\nJOB DESCRIPTION TO OPTIMIZE FOR:\n{job_description}" if job_description else ""
 
     prompt = f"""
@@ -180,6 +191,8 @@ You are an expert US resume writer with 15 years of experience. Rewrite the resu
 
 {industry_context}
 {company_context}
+{role_context}
+{level_context}
 {analysis_context}
 
 RULES:
@@ -220,8 +233,10 @@ async def generate_cover_letter(
     job_description: str = Form(""),
     target_company: str = Form(""),
     industry: str = Form(""),
+    target_role: str = Form(""),
     tone: str = Form("professional"),
-    hiring_manager: str = Form("")
+    hiring_manager: str = Form(""),
+    why_this_job: str = Form("")
 ):
     contents = await file.read()
     pdf = pdfplumber.open(io.BytesIO(contents))
@@ -236,15 +251,19 @@ async def generate_cover_letter(
     }.get(tone, "professional, polished, and confident")
 
     company_context = f"Target company is {target_company}. Reference {target_company}'s mission, culture, or values naturally." if target_company else ""
+    role_context = f"The role is {target_role}." if target_role else ""
     jd_context = f"\n\nJOB DESCRIPTION:\n{job_description}" if job_description else ""
     manager_line = f"Address it to {hiring_manager}." if hiring_manager else "Use 'Dear Hiring Manager'."
     industry_context = f"Role is in the {industry} industry." if industry else ""
+    motivation_context = f"The candidate's personal motivation for wanting this job: '{why_this_job}'. Weave this authentic motivation naturally into the letter — it makes it personal and memorable." if why_this_job else ""
 
     prompt = f"""
 You are an elite US cover letter writer. Write cover letters that get interviews — specific, compelling, tailored.
 
 {company_context}
+{role_context}
 {industry_context}
+{motivation_context}
 TONE: {tone_guide}
 
 RULES:
@@ -252,6 +271,7 @@ RULES:
 - Reference 2-3 SPECIFIC achievements from the resume with real details
 - Mirror the job description's language if provided
 - Show genuine company knowledge if company is named
+- If the candidate shared their motivation, weave it in authentically
 - Close with a confident, specific call to action
 - 3 tight paragraphs, max 350 words
 - {manager_line}
@@ -288,15 +308,10 @@ RESUME:
 async def analyze_linkedin(
     headline: str = Form(""),
     about: str = Form(""),
-    experience: str = Form(""),   # optional — paste recent job titles/bullets
+    experience: str = Form(""),
     industry: str = Form(""),
     target_role: str = Form("")
 ):
-    """
-    Scores and rewrites a LinkedIn profile.
-    User pastes their headline + about section (and optionally recent experience).
-    No file upload needed — it's all text.
-    """
     if not headline and not about:
         return {"error": "Please provide at least your LinkedIn headline or About section."}
 
@@ -304,7 +319,7 @@ async def analyze_linkedin(
     role_context = f"Their target role is {target_role}." if target_role else ""
     experience_context = f"\n\nRECENT EXPERIENCE (optional context):\n{experience}" if experience else ""
 
-    profile_text = f"HEADLINE:\n{headline}\n\nABOUT:\n{about}{experience_context}"
+    profile_text = f"PROFILE TEXT (may include headline and About section):\n{headline}\n\n{about}{experience_context}"
 
     prompt = f"""
 You are a LinkedIn profile expert who has helped thousands of US professionals get recruited at top companies. You give specific, actionable rewrites — never generic tips.
@@ -312,35 +327,34 @@ You are a LinkedIn profile expert who has helped thousands of US professionals g
 {industry_context}
 {role_context}
 
-Analyze this LinkedIn profile and return a full score + rewrite.
+The user has pasted their LinkedIn profile text below. It may contain their headline and About section mixed together. Parse out what you can and analyze it.
 
 SCORING DIMENSIONS (each 0-100):
-- headline_score: Is it keyword-rich, role-specific, and compelling? Does it say more than just job title?
-- about_score: Does it tell a story? Does it use first person? Does it have a hook, value prop, and CTA?
+- headline_score: Is it keyword-rich, role-specific, and compelling?
+- about_score: Does it tell a story, use first person, have a hook, value prop, and CTA?
 - keywords_score: Are the right industry/role keywords present for recruiter searches?
 - overall_score: Weighted average
 
 REWRITE RULES:
-- Rewritten headline: max 220 characters, keyword-rich, specific, includes value prop or differentiator
-- Rewritten about: 3-4 paragraphs, first person, opens with a hook (not "I am a..."), includes measurable achievements pulled from what they shared, ends with a call to action or what they're open to
+- Rewritten headline: max 220 characters, keyword-rich, specific, includes value prop
+- Rewritten about: 3-4 paragraphs, first person, opens with a hook, includes measurable achievements from what they shared, ends with a call to action
 - Never fabricate numbers or experience not mentioned
-- Use industry-appropriate keywords throughout
 
-Return ONLY JSON, no markdown, no backticks:
+Return ONLY JSON, no markdown:
 
 {{
     "overall_score": <number 0-100>,
     "headline_score": <number 0-100>,
     "about_score": <number 0-100>,
     "keywords_score": <number 0-100>,
-    "score_summary": "<2 sentence summary of their profile's current state and biggest gap>",
-    "headline_feedback": "<specific critique of their current headline — what's weak and exactly why>",
-    "about_feedback": "<specific critique of their current about section>",
-    "rewritten_headline": "<new LinkedIn headline, max 220 chars, immediately copy-pasteable>",
-    "rewritten_about": "<full rewritten About section, 3-4 paragraphs, ready to paste into LinkedIn>",
-    "missing_keywords": ["<keyword recruiters search that's missing>", "<keyword>", "<keyword>", "<keyword>"],
+    "score_summary": "<2 sentence summary of current state and biggest gap>",
+    "headline_feedback": "<specific critique of their headline>",
+    "about_feedback": "<specific critique of their about section>",
+    "rewritten_headline": "<new headline, max 220 chars, copy-pasteable>",
+    "rewritten_about": "<full rewritten About section, 3-4 paragraphs, ready to paste>",
+    "missing_keywords": ["<keyword>", "<keyword>", "<keyword>", "<keyword>"],
     "quick_wins": [
-        "<one specific, immediate change they can make today — e.g. 'Add Open To Work for X, Y, Z roles'>",
+        "<one specific immediate change>",
         "<another quick win>",
         "<third quick win>"
     ]
@@ -359,6 +373,22 @@ LINKEDIN PROFILE:
     raw = strip_json(response.choices[0].message.content)
     print("LINKEDIN RESPONSE:", raw[:200])
     return json.loads(raw)
+
+
+@app.post("/feedback")
+async def save_feedback(data: dict):
+    try:
+        rating = data.get("rating", "")
+        message = data.get("message", "")
+        with open("feedback.csv", "a") as f:
+            # basic CSV escaping
+            clean_msg = str(message).replace("\n", " ").replace(",", ";")
+            f.write(f"{rating},{clean_msg}\n")
+        print("Feedback saved:", rating, message[:50])
+        return {"message": "Thanks for your feedback!"}
+    except Exception as e:
+        print("Feedback error:", str(e))
+        return {"message": "Feedback received"}
 
 
 @app.post("/save-email")

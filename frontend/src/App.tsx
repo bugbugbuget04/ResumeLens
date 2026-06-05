@@ -464,31 +464,132 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
               <select value={industry} onChange={(e) => setIndustry(e.target.value)}
                 className="w-full bg-stone-50 border border-stone-300 focus:border-yellow-400 rounded-xl px-4 py-3 text-stone-900 mb-3 outline-none transition-all">
                 <option value="">Select your industry (optional)</option>
-                <optgroup label="Technology">
+
+                <optgroup label="Technology & Software">
                   <option value="software-engineering">Software Engineering</option>
-                  <option value="data-science">Data Science / AI / ML</option>
-                  <option value="product-management">Product Management</option>
+                  <option value="frontend-dev">Frontend Development</option>
+                  <option value="backend-dev">Backend Development</option>
+                  <option value="fullstack-dev">Full-Stack Development</option>
+                  <option value="mobile-dev">Mobile Development (iOS/Android)</option>
+                  <option value="data-science">Data Science</option>
+                  <option value="machine-learning">Machine Learning / AI</option>
+                  <option value="data-engineering">Data Engineering</option>
+                  <option value="data-analytics">Data / Business Analytics</option>
                   <option value="devops-cloud">DevOps / Cloud / Infrastructure</option>
                   <option value="cybersecurity">Cybersecurity</option>
+                  <option value="qa-testing">QA / Test Engineering</option>
                   <option value="it-support">IT Support / SysAdmin</option>
+                  <option value="network-engineering">Network Engineering</option>
+                  <option value="database-admin">Database Administration</option>
+                  <option value="product-management">Product Management</option>
                   <option value="ux-ui-design">UX / UI Design</option>
+                  <option value="game-dev">Game Development</option>
+                  <option value="blockchain">Blockchain / Web3</option>
                 </optgroup>
-                <optgroup label="Business & Finance">
-                  <option value="finance-banking">Finance / Banking</option>
+
+                <optgroup label="Sales">
+                  <option value="inside-sales">Inside Sales</option>
+                  <option value="outside-field-sales">Outside / Field Sales</option>
+                  <option value="account-executive">Account Executive</option>
+                  <option value="account-management">Account Management</option>
+                  <option value="sales-development-sdr">Sales Development (SDR/BDR)</option>
+                  <option value="business-development">Business Development</option>
+                  <option value="sales-engineering">Sales Engineering</option>
+                  <option value="retail-sales">Retail Sales</option>
+                  <option value="channel-partnerships">Channel / Partnerships</option>
+                  <option value="sales-management">Sales Management</option>
+                </optgroup>
+
+                <optgroup label="Management & Business">
+                  <option value="general-management">General Management</option>
+                  <option value="operations-management">Operations Management</option>
+                  <option value="project-management">Project Management</option>
+                  <option value="program-management">Program Management</option>
+                  <option value="product-ops">Product Operations</option>
+                  <option value="strategy">Strategy / Corporate Development</option>
+                  <option value="management-consulting">Management Consulting</option>
+                  <option value="supply-chain">Supply Chain / Logistics</option>
+                  <option value="procurement">Procurement / Purchasing</option>
+                  <option value="business-analyst">Business Analyst</option>
+                  <option value="entrepreneurship">Entrepreneurship / Founder</option>
+                </optgroup>
+
+                <optgroup label="Finance & Accounting">
+                  <option value="investment-banking">Investment Banking</option>
+                  <option value="corporate-finance">Corporate Finance</option>
+                  <option value="financial-analysis">Financial Analysis (FP&A)</option>
                   <option value="accounting">Accounting</option>
-                  <option value="consulting">Consulting</option>
-                  <option value="sales">Sales / Business Development</option>
-                  <option value="marketing">Marketing / Advertising</option>
-                  <option value="hr">Human Resources</option>
-                  <option value="operations">Operations / Supply Chain</option>
+                  <option value="audit">Audit</option>
+                  <option value="tax">Tax</option>
+                  <option value="private-equity-vc">Private Equity / VC</option>
+                  <option value="asset-wealth-management">Asset / Wealth Management</option>
+                  <option value="risk-compliance">Risk / Compliance</option>
+                  <option value="actuarial">Actuarial / Insurance</option>
+                  <option value="fintech">Fintech</option>
                 </optgroup>
+
+                <optgroup label="Marketing & Communications">
+                  <option value="digital-marketing">Digital Marketing</option>
+                  <option value="content-marketing">Content Marketing</option>
+                  <option value="seo-sem">SEO / SEM</option>
+                  <option value="social-media">Social Media</option>
+                  <option value="brand-marketing">Brand Marketing</option>
+                  <option value="product-marketing">Product Marketing</option>
+                  <option value="growth-marketing">Growth Marketing</option>
+                  <option value="pr-communications">PR / Communications</option>
+                  <option value="advertising">Advertising</option>
+                </optgroup>
+
+                <optgroup label="Healthcare & Medical">
+                  <option value="nursing">Nursing</option>
+                  <option value="physician">Physician / Doctor</option>
+                  <option value="allied-health">Allied Health (PT/OT/Radiology)</option>
+                  <option value="pharmacy">Pharmacy</option>
+                  <option value="dental">Dental</option>
+                  <option value="mental-health">Mental Health / Counseling</option>
+                  <option value="healthcare-admin">Healthcare Administration</option>
+                  <option value="medical-research">Medical / Clinical Research</option>
+                  <option value="public-health">Public Health</option>
+                  <option value="biotech-pharma">Biotech / Pharmaceuticals</option>
+                  <option value="medical-devices">Medical Devices</option>
+                  <option value="veterinary">Veterinary</option>
+                </optgroup>
+
+                <optgroup label="Engineering">
+                  <option value="mechanical-engineering">Mechanical Engineering</option>
+                  <option value="electrical-engineering">Electrical Engineering</option>
+                  <option value="civil-engineering">Civil Engineering</option>
+                  <option value="chemical-engineering">Chemical Engineering</option>
+                  <option value="aerospace-engineering">Aerospace Engineering</option>
+                  <option value="industrial-engineering">Industrial / Manufacturing Engineering</option>
+                  <option value="biomedical-engineering">Biomedical Engineering</option>
+                  <option value="environmental-engineering">Environmental Engineering</option>
+                  <option value="structural-engineering">Structural Engineering</option>
+                  <option value="automotive-engineering">Automotive Engineering</option>
+                  <option value="petroleum-energy">Petroleum / Energy Engineering</option>
+                </optgroup>
+
+                <optgroup label="Creative & Design">
+                  <option value="graphic-design">Graphic Design</option>
+                  <option value="product-industrial-design">Product / Industrial Design</option>
+                  <option value="motion-video">Motion / Video / Film</option>
+                  <option value="writing-editing">Writing / Editing</option>
+                  <option value="photography">Photography</option>
+                  <option value="art-direction">Art Direction</option>
+                  <option value="architecture">Architecture</option>
+                </optgroup>
+
                 <optgroup label="Other Fields">
-                  <option value="healthcare">Healthcare / Medical</option>
-                  <option value="engineering">Engineering (Mechanical/Civil/etc)</option>
+                  <option value="human-resources">Human Resources / Recruiting</option>
                   <option value="education">Education / Teaching</option>
                   <option value="legal">Legal</option>
-                  <option value="creative">Creative / Design / Media</option>
-                  <option value="customer-service">Customer Service</option>
+                  <option value="customer-service">Customer Service / Support</option>
+                  <option value="hospitality">Hospitality / Tourism</option>
+                  <option value="real-estate">Real Estate</option>
+                  <option value="government-nonprofit">Government / Nonprofit</option>
+                  <option value="skilled-trades">Skilled Trades / Construction</option>
+                  <option value="science-research">Science / Research</option>
+                  <option value="logistics-transport">Logistics / Transportation</option>
                 </optgroup>
               </select>
 

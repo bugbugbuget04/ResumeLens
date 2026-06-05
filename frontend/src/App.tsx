@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import type { RefObject } from "react";
 import axios from "axios";
 
 const CHECKOUT_URL = "https://resumelens.lemonsqueezy.com/checkout/buy/aa1a1cb6-75f1-4536-b9c4-7c5553d65dbd";
@@ -282,7 +283,7 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
     glassdoor: `https://www.glassdoor.com/Job/jobs.htm?sc.keyword=${encodeURIComponent(role)}&locT=N&locId=1`,
   }));
 
-  const ReUploadBlock = ({ inputRef, onFile }: { inputRef: React.RefObject<HTMLInputElement>; onFile: (f: File) => void }) => (
+  const ReUploadBlock = ({ inputRef, onFile }: { inputRef: RefObject<HTMLInputElement | null>; onFile: (f: File) => void }) => (
     <>
       <div className="bg-yellow-100 border border-yellow-300 rounded-xl px-4 py-3 mb-4 flex items-start gap-2">
         <span className="text-yellow-600 mt-0.5">⚠️</span>

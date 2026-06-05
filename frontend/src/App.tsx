@@ -37,6 +37,38 @@ function ScoreBar({ score, color }: { score: number; color: string }) {
   );
 }
 
+// Playful hand-drawn doodles scattered in the background
+function Doodles() {
+  return (
+    <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10" aria-hidden="true">
+      <svg className="absolute top-24 left-8 doodle-float" width="90" height="40" viewBox="0 0 90 40" fill="none">
+        <path d="M5 20 Q 20 5, 30 20 T 55 20 T 80 20" stroke="#facc15" strokeWidth="3" strokeLinecap="round" opacity="0.6" />
+      </svg>
+      <svg className="absolute top-32 right-16 doodle-spin" width="48" height="48" viewBox="0 0 48 48" fill="none">
+        <path d="M24 4 L28 18 L42 18 L31 27 L35 41 L24 32 L13 41 L17 27 L6 18 L20 18 Z" stroke="#fbbf24" strokeWidth="2.5" fill="#fef3c7" opacity="0.7" />
+      </svg>
+      <svg className="absolute top-1/2 left-12 doodle-float-slow" width="60" height="60" viewBox="0 0 60 60" fill="none">
+        <circle cx="10" cy="10" r="4" fill="#fcd34d" opacity="0.6" />
+        <circle cx="30" cy="20" r="4" fill="#fbbf24" opacity="0.5" />
+        <circle cx="15" cy="35" r="4" fill="#facc15" opacity="0.6" />
+        <circle cx="40" cy="45" r="4" fill="#fcd34d" opacity="0.5" />
+      </svg>
+      <svg className="absolute bottom-32 right-20 doodle-float" width="70" height="70" viewBox="0 0 70 70" fill="none">
+        <path d="M35 10 a 25 25 0 1 1 -0.1 0 M35 22 a 13 13 0 1 0 0.1 0" stroke="#fbbf24" strokeWidth="2.5" strokeLinecap="round" opacity="0.45" />
+      </svg>
+      <svg className="absolute bottom-40 left-16 doodle-float-slow" width="110" height="30" viewBox="0 0 110 30" fill="none">
+        <path d="M5 15 Q 40 28, 70 12 T 105 14" stroke="#facc15" strokeWidth="3" strokeLinecap="round" opacity="0.5" />
+      </svg>
+      <svg className="absolute top-1/3 right-1/4 doodle-spin-slow" width="30" height="30" viewBox="0 0 30 30" fill="none">
+        <path d="M15 5 V 25 M5 15 H 25" stroke="#fbbf24" strokeWidth="3" strokeLinecap="round" opacity="0.5" />
+      </svg>
+      <svg className="absolute bottom-1/4 left-1/2 doodle-float" width="36" height="36" viewBox="0 0 36 36" fill="none">
+        <path d="M18 3 L21 15 L33 18 L21 21 L18 33 L15 21 L3 18 L15 15 Z" fill="#fcd34d" opacity="0.55" />
+      </svg>
+    </div>
+  );
+}
+
 export default function App() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -305,7 +337,8 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
   );
 
   return (
-    <div className="min-h-screen bg-stone-50 text-stone-900">
+    <div className="min-h-screen bg-stone-50 text-stone-900 relative">
+      <Doodles />
       <nav className="border-b border-stone-200 bg-white px-6 py-4 flex justify-between items-center">
         <button onClick={handleGoHome} className="flex items-center gap-2.5 hover:opacity-80 transition-opacity cursor-pointer">
           <ResumeLensLogo size={32} />
@@ -425,7 +458,7 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
                 {[{ step: "01", title: "Upload", desc: "Drop your PDF resume" },
                   { step: "02", title: "Analyze", desc: "AI reviews every section" },
                   { step: "03", title: "Improve", desc: "Get actionable fixes" }].map((item) => (
-                  <div key={item.step} className="bg-white border border-stone-200 rounded-xl p-5 text-center shadow-sm">
+                  <div key={item.step} className="bg-white border border-stone-200 rounded-xl p-5 text-center shadow-sm rl-card">
                     <div className="text-yellow-500 font-black text-2xl mb-2">{item.step}</div>
                     <div className="text-stone-900 font-semibold mb-1">{item.title}</div>
                     <div className="text-stone-500 text-sm">{item.desc}</div>
@@ -463,7 +496,7 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
           <div className="space-y-4">
 
             {/* Score Hero */}
-            <div className="bg-white border border-stone-200 rounded-2xl p-8 text-center shadow-sm">
+            <div className="bg-white border border-stone-200 rounded-2xl p-8 text-center shadow-sm rl-card">
               <p className="text-stone-400 text-xs font-semibold uppercase tracking-widest mb-4">Overall Score</p>
               <div className={`text-8xl font-black ${sc(result.overall_score)}`}>
                 {result.overall_score}<span className="text-3xl text-stone-300">/100</span>
@@ -479,7 +512,7 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
 
             {/* Job Match */}
             {result.job_match_score && jobDescription && (
-              <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
+              <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm rl-card">
                 <h2 className="font-bold text-stone-900 text-base mb-4">🎯 Job Description Match</h2>
                 <div className="flex items-center gap-4 mb-3">
                   <div className={`text-5xl font-black ${sc(result.job_match_score)}`}>{result.job_match_score}%</div>
@@ -491,7 +524,7 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
 
             {/* Section Scores */}
             {result.section_scores && (
-              <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
+              <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm rl-card">
                 <h2 className="font-bold text-stone-900 text-base mb-5">📊 Section Scores</h2>
                 <div className="space-y-4">
                   {Object.entries(result.section_scores).map(([key, val]: any) => (
@@ -508,7 +541,7 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
             )}
 
             {/* Strengths */}
-            <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
+            <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm rl-card">
               <h2 className="font-bold text-stone-900 text-base mb-4">💪 Top Strengths</h2>
               <div className="space-y-2">
                 {result.top_strengths?.map((s: string, i: number) => (
@@ -521,7 +554,7 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
             </div>
 
             {/* Critical Improvements */}
-            <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
+            <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm rl-card">
               <h2 className="font-bold text-stone-900 text-base mb-4">🚨 Critical Improvements</h2>
               {result.critical_improvements?.slice(0, 1).map((item: any, i: number) => (
                 <div key={i} className="bg-red-50 border border-red-200 rounded-xl p-4 mb-3">
@@ -577,7 +610,7 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
                 </div>
               </div>
             ) : (
-              <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
+              <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm rl-card">
                 <h2 className="font-bold text-stone-900 text-base mb-4">🔑 Keyword Analysis</h2>
                 <div className="mb-4">
                   <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-2">✓ Strong Keywords</p>
@@ -600,7 +633,7 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
 
             {/* Bullet Rewrite */}
             {premium && result.bullet_point_analysis && (
-              <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
+              <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm rl-card">
                 <h2 className="font-bold text-stone-900 text-base mb-4">✏️ Bullet Point Rewrite</h2>
                 <p className="text-stone-500 text-sm mb-4">{result.bullet_point_analysis.feedback}</p>
                 <div className="space-y-3">
@@ -902,7 +935,7 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
 
             {/* Job Board Links */}
             {result.target_roles && (
-              <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
+              <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm rl-card">
                 <h2 className="font-bold text-stone-900 text-base mb-2">🔎 Find Matching Jobs</h2>
                 <p className="text-stone-500 text-sm mb-4">Based on your profile, apply to these roles now:</p>
                 <div className="space-y-3">
@@ -924,7 +957,7 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
 
             {/* Target Roles */}
             {result.target_roles && (
-              <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
+              <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm rl-card">
                 <h2 className="font-bold text-stone-900 text-base mb-4">🎯 Best Fit Roles</h2>
                 <div className="flex flex-wrap gap-2">
                   {result.target_roles?.map((r: string, i: number) => (
@@ -1007,7 +1040,29 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
         </div>
       </footer>
 
-      <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+      <style>{`
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Doodle motion */
+        @keyframes doodleFloat { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-12px) rotate(4deg); } }
+        @keyframes doodleFloatSlow { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-8px) rotate(-3deg); } }
+        @keyframes doodleSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .doodle-float { animation: doodleFloat 6s ease-in-out infinite; }
+        .doodle-float-slow { animation: doodleFloatSlow 9s ease-in-out infinite; }
+        .doodle-spin { animation: doodleSpin 24s linear infinite; }
+        .doodle-spin-slow { animation: doodleSpin 40s linear infinite; }
+
+        /* Snappy tactile press on all buttons */
+        button {
+          transition: transform 0.08s cubic-bezier(0.4,0,0.2,1), box-shadow 0.15s ease, background-color 0.15s ease !important;
+        }
+        button:hover:not(:disabled) { transform: translateY(-2px); }
+        button:active:not(:disabled) { transform: translateY(1px) scale(0.98); }
+
+        /* Cards lift gently on hover */
+        .rl-card { transition: transform 0.12s cubic-bezier(0.4,0,0.2,1), box-shadow 0.2s ease; }
+        .rl-card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px -8px rgba(0,0,0,0.12); }
+      `}</style>
     </div>
   );
 }

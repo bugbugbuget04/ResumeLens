@@ -40,7 +40,7 @@ function ScoreBar({ score, color }: { score: number; color: string }) {
 // Playful hand-drawn doodles scattered in the background
 function Doodles() {
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10" aria-hidden="true">
+    <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }} aria-hidden="true">
       {/* Squiggle top-left — deep amber */}
       <svg className="absolute top-24 left-8 doodle-float" width="90" height="40" viewBox="0 0 90 40" fill="none">
         <path d="M5 20 Q 20 5, 30 20 T 55 20 T 80 20" stroke="#d97706" strokeWidth="3.5" strokeLinecap="round" opacity="0.85" />
@@ -382,7 +382,7 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900 relative">
       <Doodles />
-      <nav className="border-b border-stone-200 bg-white px-6 py-4 flex justify-between items-center">
+      <nav className="relative z-10 border-b border-stone-200 bg-white px-6 py-4 flex justify-between items-center">
         <button onClick={handleGoHome} className="flex items-center gap-2.5 hover:opacity-80 transition-opacity cursor-pointer">
           <ResumeLensLogo size={32} />
           <span className="text-lg font-bold text-stone-900">ResumeLens</span>
@@ -395,7 +395,7 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
         </div>
       </nav>
 
-      <div className="max-w-3xl mx-auto px-4 py-12">
+      <div className="relative z-10 max-w-3xl mx-auto px-4 py-12">
 
         {/* ── UPLOAD SCREEN ── */}
         {!result && (
@@ -1113,7 +1113,7 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
         </div>
       )}
 
-      <footer className="border-t border-stone-200 bg-white py-8 mt-16">
+      <footer className="relative z-10 border-t border-stone-200 bg-white py-8 mt-16">
         <div className="max-w-3xl mx-auto px-4 flex justify-between items-center">
           <button onClick={handleGoHome} className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer">
             <ResumeLensLogo size={24} />

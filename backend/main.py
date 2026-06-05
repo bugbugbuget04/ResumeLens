@@ -75,16 +75,22 @@ STRICT RULES YOU MUST FOLLOW:
 - If a target company is provided, mention specifically what that company looks for and how this resume falls short or succeeds
 - If a job description is provided, compare the resume line by line against the requirements
 
+CRITICAL — FUNDAMENTAL MISMATCH CHECK (honesty over politeness):
+If the candidate is applying to a role they are FUNDAMENTALLY unqualified for — meaning they lack the core degree, license, certification, or entire field of training that the role legally or practically requires (e.g. a Computer Science student applying for a Staff Nurse, Cardiologist, Lawyer, or Civil Engineer role) — you MUST NOT softly encourage them. Be honest and direct. Set "fundamental_mismatch" to true and clearly state they should not apply to this specific role as-is, explain exactly what core qualifications they are missing (degrees, licenses, certifications, years of clinical/field training), and point them toward roles that DO fit their actual background. This is being kind by being honest — it saves them from wasting applications. For normal gaps (missing a few skills, needs more experience, weak bullets) set "fundamental_mismatch" to false — those are fixable and should get the usual constructive feedback.
+
 Return ONLY a JSON object with this exact structure, no markdown, no backticks:
 
 {{
     "overall_score": <number 0-100>,
+    "fundamental_mismatch": <true or false — true ONLY for severe field/qualification mismatches as described above>,
+    "mismatch_warning": "<if fundamental_mismatch is true: a direct, honest 1-2 sentence statement that they should not apply to this role and why. If false: empty string>",
+    "mismatch_requirements": ["<if mismatch: a core qualification they would NEED to be eligible, e.g. 'A Bachelor of Science in Nursing (BSN)'>", "<another required qualification>", "<another>"],
     "summary": "<3 sentence summary that references their actual job titles, companies, and specific gaps for their target industry>",
     "section_scores": {{
         "work_experience": <number 0-100>,
         "skills": <number 0-100>,
         "education": <number 0-100>,
-        "summary_section": <number 0-100>,
+        "summary_section": <number 0-100 — score the resume's professional summary/objective/profile statement at the top. If the resume genuinely has NO summary or objective section at all, score it low (10-30) and note it as a missing element — do NOT default to 0 unless it is truly absent>,
         "formatting": <number 0-100>
     }},
     "ats_score": <number 0-100>,

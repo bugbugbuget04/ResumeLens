@@ -41,29 +41,71 @@ function ScoreBar({ score, color }: { score: number; color: string }) {
 function Doodles() {
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10" aria-hidden="true">
+      {/* Squiggle top-left */}
       <svg className="absolute top-24 left-8 doodle-float" width="90" height="40" viewBox="0 0 90 40" fill="none">
-        <path d="M5 20 Q 20 5, 30 20 T 55 20 T 80 20" stroke="#facc15" strokeWidth="3" strokeLinecap="round" opacity="0.6" />
+        <path d="M5 20 Q 20 5, 30 20 T 55 20 T 80 20" stroke="#f59e0b" strokeWidth="3.5" strokeLinecap="round" opacity="0.8" />
       </svg>
-      <svg className="absolute top-32 right-16 doodle-spin" width="48" height="48" viewBox="0 0 48 48" fill="none">
-        <path d="M24 4 L28 18 L42 18 L31 27 L35 41 L24 32 L13 41 L17 27 L6 18 L20 18 Z" stroke="#fbbf24" strokeWidth="2.5" fill="#fef3c7" opacity="0.7" />
+      {/* Star top-right */}
+      <svg className="absolute top-32 right-16 doodle-spin" width="52" height="52" viewBox="0 0 48 48" fill="none">
+        <path d="M24 4 L28 18 L42 18 L31 27 L35 41 L24 32 L13 41 L17 27 L6 18 L20 18 Z" stroke="#f59e0b" strokeWidth="2.5" fill="#fde68a" opacity="0.85" />
       </svg>
+      {/* Circle dots cluster left */}
       <svg className="absolute top-1/2 left-12 doodle-float-slow" width="60" height="60" viewBox="0 0 60 60" fill="none">
-        <circle cx="10" cy="10" r="4" fill="#fcd34d" opacity="0.6" />
-        <circle cx="30" cy="20" r="4" fill="#fbbf24" opacity="0.5" />
-        <circle cx="15" cy="35" r="4" fill="#facc15" opacity="0.6" />
-        <circle cx="40" cy="45" r="4" fill="#fcd34d" opacity="0.5" />
+        <circle cx="10" cy="10" r="5" fill="#fbbf24" opacity="0.85" />
+        <circle cx="30" cy="20" r="5" fill="#f59e0b" opacity="0.7" />
+        <circle cx="15" cy="35" r="5" fill="#facc15" opacity="0.85" />
+        <circle cx="40" cy="45" r="5" fill="#fbbf24" opacity="0.7" />
       </svg>
+      {/* Loop/spiral bottom-right */}
       <svg className="absolute bottom-32 right-20 doodle-float" width="70" height="70" viewBox="0 0 70 70" fill="none">
-        <path d="M35 10 a 25 25 0 1 1 -0.1 0 M35 22 a 13 13 0 1 0 0.1 0" stroke="#fbbf24" strokeWidth="2.5" strokeLinecap="round" opacity="0.45" />
+        <path d="M35 10 a 25 25 0 1 1 -0.1 0 M35 22 a 13 13 0 1 0 0.1 0" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round" opacity="0.65" />
       </svg>
+      {/* Underline swoosh bottom-left */}
       <svg className="absolute bottom-40 left-16 doodle-float-slow" width="110" height="30" viewBox="0 0 110 30" fill="none">
-        <path d="M5 15 Q 40 28, 70 12 T 105 14" stroke="#facc15" strokeWidth="3" strokeLinecap="round" opacity="0.5" />
+        <path d="M5 15 Q 40 28, 70 12 T 105 14" stroke="#f59e0b" strokeWidth="3.5" strokeLinecap="round" opacity="0.7" />
       </svg>
-      <svg className="absolute top-1/3 right-1/4 doodle-spin-slow" width="30" height="30" viewBox="0 0 30 30" fill="none">
-        <path d="M15 5 V 25 M5 15 H 25" stroke="#fbbf24" strokeWidth="3" strokeLinecap="round" opacity="0.5" />
+      {/* Plus marks */}
+      <svg className="absolute top-1/3 right-1/4 doodle-spin-slow" width="32" height="32" viewBox="0 0 30 30" fill="none">
+        <path d="M15 5 V 25 M5 15 H 25" stroke="#f59e0b" strokeWidth="3.5" strokeLinecap="round" opacity="0.7" />
       </svg>
-      <svg className="absolute bottom-1/4 left-1/2 doodle-float" width="36" height="36" viewBox="0 0 36 36" fill="none">
-        <path d="M18 3 L21 15 L33 18 L21 21 L18 33 L15 21 L3 18 L15 15 Z" fill="#fcd34d" opacity="0.55" />
+      {/* Sparkle */}
+      <svg className="absolute bottom-1/4 left-1/2 doodle-float" width="38" height="38" viewBox="0 0 36 36" fill="none">
+        <path d="M18 3 L21 15 L33 18 L21 21 L18 33 L15 21 L3 18 L15 15 Z" fill="#fbbf24" opacity="0.75" />
+      </svg>
+
+      {/* ── PROFESSIONAL PEOPLE SCENES ── */}
+      {/* Scene 1: Person handing a resume to another (side view) — left side */}
+      <svg className="absolute top-[58%] left-4 doodle-float-slow hidden lg:block" width="150" height="120" viewBox="0 0 150 120" fill="none">
+        {/* Person A (giving) */}
+        <circle cx="30" cy="30" r="11" stroke="#a16207" strokeWidth="2.5" fill="#fef3c7" />
+        <path d="M30 41 L30 78 M30 50 L15 65 M30 50 L52 58" stroke="#a16207" strokeWidth="2.5" strokeLinecap="round" />
+        <path d="M30 78 L20 105 M30 78 L40 105" stroke="#a16207" strokeWidth="2.5" strokeLinecap="round" />
+        {/* Resume paper being handed */}
+        <rect x="52" y="52" width="16" height="20" rx="1.5" fill="#fde68a" stroke="#a16207" strokeWidth="1.8" transform="rotate(12 60 62)" />
+        <line x1="56" y1="58" x2="65" y2="60" stroke="#a16207" strokeWidth="1" opacity="0.7" transform="rotate(12 60 62)" />
+        <line x1="55" y1="62" x2="64" y2="64" stroke="#a16207" strokeWidth="1" opacity="0.7" transform="rotate(12 60 62)" />
+        {/* Person B (receiving) */}
+        <circle cx="115" cy="30" r="11" stroke="#a16207" strokeWidth="2.5" fill="#fef3c7" />
+        <path d="M115 41 L115 78 M115 50 L130 65 M115 50 L92 58" stroke="#a16207" strokeWidth="2.5" strokeLinecap="round" />
+        <path d="M115 78 L105 105 M115 78 L125 105" stroke="#a16207" strokeWidth="2.5" strokeLinecap="round" />
+      </svg>
+
+      {/* Scene 2: Face-to-face interview across a desk (side view) — right side */}
+      <svg className="absolute top-[40%] right-4 doodle-float hidden lg:block" width="160" height="120" viewBox="0 0 160 120" fill="none">
+        {/* Interviewer (left, behind desk) */}
+        <circle cx="32" cy="28" r="11" stroke="#a16207" strokeWidth="2.5" fill="#fde68a" />
+        <path d="M32 39 L32 70 M32 48 L46 60" stroke="#a16207" strokeWidth="2.5" strokeLinecap="round" />
+        {/* Candidate (right) */}
+        <circle cx="128" cy="28" r="11" stroke="#a16207" strokeWidth="2.5" fill="#fef3c7" />
+        <path d="M128 39 L128 70 M128 48 L114 60" stroke="#a16207" strokeWidth="2.5" strokeLinecap="round" />
+        {/* Desk between them */}
+        <rect x="50" y="70" width="60" height="6" rx="2" fill="#fbbf24" stroke="#a16207" strokeWidth="1.8" />
+        <line x1="58" y1="76" x2="58" y2="100" stroke="#a16207" strokeWidth="2" strokeLinecap="round" />
+        <line x1="102" y1="76" x2="102" y2="100" stroke="#a16207" strokeWidth="2" strokeLinecap="round" />
+        {/* Speech dots (conversation) */}
+        <circle cx="72" cy="50" r="2.5" fill="#f59e0b" opacity="0.8" />
+        <circle cx="82" cy="46" r="2.5" fill="#f59e0b" opacity="0.6" />
+        <circle cx="92" cy="50" r="2.5" fill="#f59e0b" opacity="0.8" />
       </svg>
     </div>
   );
@@ -494,6 +536,46 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
         {/* ── RESULTS ── */}
         {result && emailSubmitted && (
           <div className="space-y-4">
+
+            {/* ── FUNDAMENTAL MISMATCH WARNING ── */}
+            {result.fundamental_mismatch && (
+              <>
+                {/* Bold banner */}
+                <div className="bg-red-500 text-white rounded-2xl p-5 flex items-start gap-3 shadow-lg">
+                  <span className="text-2xl shrink-0">⚠️</span>
+                  <div>
+                    <p className="font-black text-base mb-1">Hold on — this role may not be the right fit</p>
+                    <p className="text-red-50 text-sm leading-relaxed">{result.mismatch_warning}</p>
+                  </div>
+                </div>
+
+                {/* Reality Check card */}
+                <div className="bg-white border-2 border-red-200 rounded-2xl p-6 shadow-sm rl-card">
+                  <h2 className="font-black text-stone-900 text-base mb-2 flex items-center gap-2">
+                    <span>🎯</span> Reality Check
+                  </h2>
+                  <p className="text-stone-600 text-sm mb-4 leading-relaxed">
+                    We want to be honest with you — applying to this specific role as-is is unlikely to succeed, and that's okay. Here's what this role typically requires that your resume doesn't yet show:
+                  </p>
+                  {result.mismatch_requirements?.length > 0 && (
+                    <div className="space-y-2 mb-4">
+                      {result.mismatch_requirements.map((req: string, i: number) => (
+                        <div key={i} className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                          <span className="text-red-500 mt-0.5 shrink-0">✗</span>
+                          <span className="text-stone-700 text-sm">{req}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+                    <p className="text-emerald-700 text-sm font-semibold mb-1">💡 The good news</p>
+                    <p className="text-stone-600 text-sm leading-relaxed">
+                      Your skills are valuable — they're just a better match for different roles. Scroll down to "Best Fit Roles" below to see positions that actually align with your background.
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Score Hero */}
             <div className="bg-white border border-stone-200 rounded-2xl p-8 text-center shadow-sm rl-card">

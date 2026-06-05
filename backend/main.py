@@ -381,6 +381,48 @@ LINKEDIN PROFILE:
     return json.loads(raw)
 
 
+@app.post("/polish")
+async def polish_text(data: dict):
+    """Polish a single resume field (bullet, summary, etc.) into strong resume language."""
+    try:
+        text = data.get("text", "").strip()
+        field_type = data.get("field_type", "bullet")  # bullet | summary | skill
+        role = data.get("role", "")
+
+        if not text:
+            return {"polished": ""}
+
+        role_hint = f" The person is targeting a {role} role." if role else ""
+
+        if field_type == "summary":
+            instruction = f"Rewrite this into a punchy 2-3 sentence professional resume summary. Strong, specific, no fluff, no first-person pronouns where avoidable.{role_hint}"
+        elif field_type == "skill":
+            instruction = f"Clean this up into a concise, comma-separated list of professional skills suitable for a resume.{role_hint}"
+        else:
+            instruction = f"Rewrite this into a single strong resume bullet point. Start with a powerful action verb, add measurable impact or scope where reasonable, keep it to one line, no period needed at the start.{role_hint}"
+
+        prompt = f"""You are an expert resume writer. {instruction}
+
+Return ONLY the rewritten text, no quotes, no markdown, no explanation, no preamble.
+
+Original: {text}"""
+
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.5,
+            max_tokens=300,
+        )
+        polished = response.choices[0].message.content.strip()
+        # strip wrapping quotes if model added them
+        if polished.startswith('"') and polished.endswith('"'):
+            polished = polished[1:-1].strip()
+        return {"polished": polished}
+    except Exception as e:
+        print("Polish error:", str(e))
+        return {"polished": data.get("text", "")}
+
+
 @app.post("/feedback")
 async def save_feedback(data: dict):
     try:

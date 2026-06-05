@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import type { RefObject } from "react";
 import axios from "axios";
+import Builder from "./Builder";
 
 const CHECKOUT_URL = "https://resumelens.lemonsqueezy.com/checkout/buy/aa1a1cb6-75f1-4536-b9c4-7c5553d65dbd";
 const API = "https://resumelens-cm11.onrender.com";
@@ -83,36 +84,62 @@ function Doodles() {
 
       {/* ── PROFESSIONAL PEOPLE SCENES ── */}
       {/* Scene 1: Person handing a resume to another (side view) — left side */}
-      <svg className="absolute top-[58%] left-4 doodle-float-slow hidden lg:block" width="150" height="120" viewBox="0 0 150 120" fill="none">
-        <circle cx="30" cy="30" r="11" stroke="#b45309" strokeWidth="2.5" fill="#fde68a" />
-        <path d="M30 41 L30 78 M30 50 L15 65 M30 50 L52 58" stroke="#b45309" strokeWidth="2.5" strokeLinecap="round" />
-        <path d="M30 78 L20 105 M30 78 L40 105" stroke="#b45309" strokeWidth="2.5" strokeLinecap="round" />
-        <rect x="52" y="52" width="16" height="20" rx="1.5" fill="#bfdbfe" stroke="#2563eb" strokeWidth="1.8" transform="rotate(12 60 62)" />
-        <line x1="56" y1="58" x2="65" y2="60" stroke="#2563eb" strokeWidth="1" opacity="0.7" transform="rotate(12 60 62)" />
-        <line x1="55" y1="62" x2="64" y2="64" stroke="#2563eb" strokeWidth="1" opacity="0.7" transform="rotate(12 60 62)" />
-        <circle cx="115" cy="30" r="11" stroke="#b45309" strokeWidth="2.5" fill="#fde68a" />
-        <path d="M115 41 L115 78 M115 50 L130 65 M115 50 L92 58" stroke="#b45309" strokeWidth="2.5" strokeLinecap="round" />
-        <path d="M115 78 L105 105 M115 78 L125 105" stroke="#b45309" strokeWidth="2.5" strokeLinecap="round" />
+      <svg className="absolute top-[55%] left-2 doodle-float-slow hidden lg:block" width="180" height="150" viewBox="0 0 180 150" fill="none">
+        {/* Person A (giving) — amber */}
+        <circle cx="40" cy="28" r="14" fill="#fde68a" stroke="#b45309" strokeWidth="2.5" />
+        {/* hair */}
+        <path d="M27 24 Q 40 8, 53 24 Q 50 16, 40 15 Q 30 16, 27 24 Z" fill="#b45309" opacity="0.85" />
+        {/* body / torso */}
+        <path d="M40 42 Q 22 46, 22 80 L 22 105 Q 40 110, 58 105 L 58 75 Q 58 48, 40 42 Z" fill="#fcd34d" stroke="#b45309" strokeWidth="2.5" />
+        {/* arm extending resume */}
+        <path d="M56 70 Q 75 66, 88 72" stroke="#b45309" strokeWidth="6" strokeLinecap="round" fill="none" />
+        {/* legs */}
+        <path d="M32 105 L 30 138 M48 105 L 50 138" stroke="#b45309" strokeWidth="6" strokeLinecap="round" />
+        {/* Resume paper */}
+        <rect x="86" y="60" width="20" height="26" rx="2" fill="#bfdbfe" stroke="#2563eb" strokeWidth="2" transform="rotate(10 96 73)" />
+        <line x1="91" y1="68" x2="102" y2="70" stroke="#2563eb" strokeWidth="1.3" opacity="0.7" transform="rotate(10 96 73)" />
+        <line x1="90" y1="73" x2="101" y2="75" stroke="#2563eb" strokeWidth="1.3" opacity="0.7" transform="rotate(10 96 73)" />
+        <line x1="90" y1="78" x2="98" y2="79" stroke="#2563eb" strokeWidth="1.3" opacity="0.7" transform="rotate(10 96 73)" />
+        {/* Person B (receiving) — blue */}
+        <circle cx="148" cy="28" r="14" fill="#bfdbfe" stroke="#2563eb" strokeWidth="2.5" />
+        <path d="M135 24 Q 148 8, 161 24 Q 158 16, 148 15 Q 138 16, 135 24 Z" fill="#2563eb" opacity="0.8" />
+        <path d="M148 42 Q 130 46, 130 80 L 130 105 Q 148 110, 166 105 L 166 75 Q 166 48, 148 42 Z" fill="#93c5fd" stroke="#2563eb" strokeWidth="2.5" />
+        {/* arm reaching for resume */}
+        <path d="M132 70 Q 118 68, 108 72" stroke="#2563eb" strokeWidth="6" strokeLinecap="round" fill="none" />
+        <path d="M140 105 L 138 138 M156 105 L 158 138" stroke="#2563eb" strokeWidth="6" strokeLinecap="round" />
       </svg>
 
       {/* Scene 2: Face-to-face interview across a desk (side view) — right side */}
-      <svg className="absolute top-[40%] right-4 doodle-float hidden lg:block" width="160" height="120" viewBox="0 0 160 120" fill="none">
-        <circle cx="32" cy="28" r="11" stroke="#b45309" strokeWidth="2.5" fill="#fde68a" />
-        <path d="M32 39 L32 70 M32 48 L46 60" stroke="#b45309" strokeWidth="2.5" strokeLinecap="round" />
-        <circle cx="128" cy="28" r="11" stroke="#2563eb" strokeWidth="2.5" fill="#bfdbfe" />
-        <path d="M128 39 L128 70 M128 48 L114 60" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" />
-        <rect x="50" y="70" width="60" height="6" rx="2" fill="#fbbf24" stroke="#b45309" strokeWidth="1.8" />
-        <line x1="58" y1="76" x2="58" y2="100" stroke="#b45309" strokeWidth="2" strokeLinecap="round" />
-        <line x1="102" y1="76" x2="102" y2="100" stroke="#b45309" strokeWidth="2" strokeLinecap="round" />
-        <circle cx="72" cy="50" r="2.5" fill="#3b82f6" opacity="0.8" />
-        <circle cx="82" cy="46" r="2.5" fill="#d97706" opacity="0.7" />
-        <circle cx="92" cy="50" r="2.5" fill="#3b82f6" opacity="0.8" />
+      <svg className="absolute top-[38%] right-2 doodle-float hidden lg:block" width="190" height="150" viewBox="0 0 190 150" fill="none">
+        {/* Interviewer (left) — amber, seated */}
+        <circle cx="42" cy="30" r="14" fill="#fde68a" stroke="#b45309" strokeWidth="2.5" />
+        <path d="M29 26 Q 42 10, 55 26 Q 52 18, 42 17 Q 32 18, 29 26 Z" fill="#b45309" opacity="0.85" />
+        <path d="M42 44 Q 24 48, 24 78 L 24 92 Q 42 96, 60 92 L 60 74 Q 60 50, 42 44 Z" fill="#fcd34d" stroke="#b45309" strokeWidth="2.5" />
+        {/* gesturing arm */}
+        <path d="M58 66 Q 72 62, 80 70" stroke="#b45309" strokeWidth="5.5" strokeLinecap="round" fill="none" />
+        {/* Candidate (right) — blue, seated */}
+        <circle cx="148" cy="30" r="14" fill="#bfdbfe" stroke="#2563eb" strokeWidth="2.5" />
+        <path d="M135 26 Q 148 10, 161 26 Q 158 18, 148 17 Q 138 18, 135 26 Z" fill="#2563eb" opacity="0.8" />
+        <path d="M148 44 Q 130 48, 130 78 L 130 92 Q 148 96, 166 92 L 166 74 Q 166 50, 148 44 Z" fill="#93c5fd" stroke="#2563eb" strokeWidth="2.5" />
+        <path d="M132 66 Q 118 62, 110 70" stroke="#2563eb" strokeWidth="5.5" strokeLinecap="round" fill="none" />
+        {/* Desk between them */}
+        <rect x="62" y="96" width="66" height="8" rx="2" fill="#fbbf24" stroke="#b45309" strokeWidth="2" />
+        <line x1="70" y1="104" x2="70" y2="135" stroke="#b45309" strokeWidth="2.5" strokeLinecap="round" />
+        <line x1="120" y1="104" x2="120" y2="135" stroke="#b45309" strokeWidth="2.5" strokeLinecap="round" />
+        {/* Speech / conversation dots */}
+        <circle cx="85" cy="48" r="3" fill="#2563eb" opacity="0.8" />
+        <circle cx="95" cy="43" r="3" fill="#d97706" opacity="0.75" />
+        <circle cx="105" cy="48" r="3" fill="#2563eb" opacity="0.8" />
       </svg>
     </div>
   );
 }
 
 export default function App() {
+  const [isBuilderPath] = useState(
+    () => typeof window !== "undefined" && window.location.pathname.replace(/\/$/, "") === "/build"
+  );
+
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
@@ -379,6 +406,9 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
     </>
   );
 
+  // Render the Resume Builder page at /build (after all hooks are declared)
+  if (isBuilderPath) return <Builder />;
+
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900 relative">
       <Doodles />
@@ -388,6 +418,7 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
           <span className="text-lg font-bold text-stone-900">ResumeLens</span>
         </button>
         <div className="flex items-center gap-4">
+          <a href="/build" className="text-stone-600 hover:text-stone-900 text-sm font-semibold transition-all hidden sm:block">📝 Build Resume</a>
           <span className="text-stone-500 text-sm hidden md:block">Free AI resume analysis in 30 seconds</span>
           <button onClick={handleCheckout} className="bg-yellow-400 hover:bg-yellow-500 text-stone-900 px-4 py-2 rounded-lg text-sm font-semibold transition-all">
             Get Full Report — $3.99

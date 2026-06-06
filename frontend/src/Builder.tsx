@@ -67,6 +67,19 @@ export default function Builder() {
     { name: "", detail: "" },
   ]);
 
+  // Optional extra sections (simple text areas — only show if filled)
+  const [certifications, setCertifications] = useState("");
+  const [awards, setAwards] = useState("");
+  const [languages, setLanguages] = useState("");
+  const [volunteer, setVolunteer] = useState("");
+  const [courses, setCourses] = useState("");
+  const [affiliations, setAffiliations] = useState("");
+  const [publications, setPublications] = useState("");
+  const [interests, setInterests] = useState("");
+
+  // Custom user-defined sections
+  const [customSections, setCustomSections] = useState<{ title: string; content: string }[]>([]);
+
   // AI polish loading tracking
   const [polishing, setPolishing] = useState<string>("");
 
@@ -138,6 +151,14 @@ export default function Builder() {
     if (existing.includes(skill.toLowerCase())) return;
     setSkills(current ? `${current}, ${skill}` : skill);
   };
+
+  const addCustomSection = () => setCustomSections([...customSections, { title: "", content: "" }]);
+  const updateCustomSection = (i: number, field: "title" | "content", value: string) => {
+    const copy = [...customSections];
+    copy[i][field] = value;
+    setCustomSections(copy);
+  };
+  const removeCustomSection = (i: number) => setCustomSections(customSections.filter((_, idx) => idx !== i));
 
   // Experience handlers
   const updateExp = (i: number, field: keyof ExperienceEntry, value: any) => {
@@ -320,12 +341,29 @@ export default function Builder() {
       .detail{font-size:10pt;margin-top:1px}
       @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}`;
 
+    // Helper: turn multi-line text into <br>-joined HTML
+    const multiline = (t: string) => t.split("\n").map(l => l.trim()).filter(Boolean).join("<br/>");
+
+    const customHtml = customSections
+      .filter(cs => cs.title.trim() && cs.content.trim())
+      .map(cs => `<h2>${cs.title}</h2><p>${multiline(cs.content)}</p>`)
+      .join("");
+
     const sectionsHtml = `
 ${summary ? `<h2>Summary</h2><p class="summary">${summary}</p>` : ""}
 ${expHtml ? `<h2>Experience</h2>${expHtml}` : ""}
 ${eduHtml ? `<h2>Education</h2>${eduHtml}` : ""}
 ${skills ? `<h2>Skills</h2><p>${skills}</p>` : ""}
-${projHtml ? `<h2>Projects</h2>${projHtml}` : ""}`;
+${projHtml ? `<h2>Projects</h2>${projHtml}` : ""}
+${certifications ? `<h2>Certifications</h2><p>${multiline(certifications)}</p>` : ""}
+${awards ? `<h2>Awards & Achievements</h2><p>${multiline(awards)}</p>` : ""}
+${languages ? `<h2>Languages</h2><p>${languages}</p>` : ""}
+${volunteer ? `<h2>Volunteer Experience</h2><p>${multiline(volunteer)}</p>` : ""}
+${courses ? `<h2>Courses & Training</h2><p>${multiline(courses)}</p>` : ""}
+${affiliations ? `<h2>Professional Affiliations</h2><p>${multiline(affiliations)}</p>` : ""}
+${publications ? `<h2>Publications</h2><p>${multiline(publications)}</p>` : ""}
+${interests ? `<h2>Interests</h2><p>${interests}</p>` : ""}
+${customHtml}`;
 
     const bodyInner = headerBlockTemplates.includes(template)
       ? `<div class="header-block"><h1>${name || "Your Name"}</h1><div class="contact">${contactLine}</div></div><div class="body-pad">${sectionsHtml}<div style="margin-top:24px;border-top:1px solid #ddd;padding-top:8px;font-size:8pt;color:#999;text-align:center;">Built with ResumeLenz · resumelenz.com</div></div>`
@@ -532,6 +570,57 @@ ${templates[template]}
               <button onClick={addProject} className="w-full bg-stone-100 hover:bg-stone-200 text-stone-700 py-2 rounded-lg font-semibold text-sm transition-all">+ Add project</button>
             </div>
 
+            {/* Optional extra sections */}
+            <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-sm">
+              <h2 className="font-bold text-stone-900 mb-1">➕ More Sections <span className="text-stone-400 font-normal text-sm">(optional)</span></h2>
+              <p className="text-stone-500 text-xs mb-4">Fill in any that apply — empty ones won't appear on your resume. Put each item on its own line.</p>
+
+              <div className="space-y-3">
+                <div>
+                  <label className={labelCls}>🏅 Certifications</label>
+                  <textarea className={inputCls} rows={2} value={certifications} onChange={e => setCertifications(e.target.value)} placeholder="AWS Certified Solutions Architect (2024)&#10;PMP Certification" />
+                </div>
+                <div>
+                  <label className={labelCls}>🏆 Awards & Achievements</label>
+                  <textarea className={inputCls} rows={2} value={awards} onChange={e => setAwards(e.target.value)} placeholder="Employee of the Year, 2023&#10;Dean's List (all semesters)" />
+                </div>
+                <div>
+                  <label className={labelCls}>🌐 Languages</label>
+                  <input className={inputCls} value={languages} onChange={e => setLanguages(e.target.value)} placeholder="English (Native), Spanish (Fluent), French (Basic)" />
+                </div>
+                <div>
+                  <label className={labelCls}>🤝 Volunteer Experience</label>
+                  <textarea className={inputCls} rows={2} value={volunteer} onChange={e => setVolunteer(e.target.value)} placeholder="Food Bank Volunteer — Local Shelter (2022-present)" />
+                </div>
+                <div>
+                  <label className={labelCls}>📚 Courses & Training</label>
+                  <textarea className={inputCls} rows={2} value={courses} onChange={e => setCourses(e.target.value)} placeholder="Google Data Analytics Certificate&#10;Advanced Excel Bootcamp" />
+                </div>
+                <div>
+                  <label className={labelCls}>👥 Professional Affiliations</label>
+                  <textarea className={inputCls} rows={2} value={affiliations} onChange={e => setAffiliations(e.target.value)} placeholder="Member, American Marketing Association" />
+                </div>
+                <div>
+                  <label className={labelCls}>📄 Publications</label>
+                  <textarea className={inputCls} rows={2} value={publications} onChange={e => setPublications(e.target.value)} placeholder="Smith, J. (2024). Title of paper. Journal Name." />
+                </div>
+                <div>
+                  <label className={labelCls}>🎯 Interests</label>
+                  <input className={inputCls} value={interests} onChange={e => setInterests(e.target.value)} placeholder="Photography, Marathon running, Chess" />
+                </div>
+              </div>
+
+              {/* Custom sections */}
+              {customSections.map((cs, i) => (
+                <div key={i} className="border border-stone-200 rounded-xl p-3 mt-3">
+                  <input className={inputCls + " mb-2 font-semibold"} value={cs.title} onChange={e => updateCustomSection(i, "title", e.target.value)} placeholder="Section title (e.g. Patents, Speaking Engagements)" />
+                  <textarea className={inputCls} rows={2} value={cs.content} onChange={e => updateCustomSection(i, "content", e.target.value)} placeholder="Content — one item per line" />
+                  <button onClick={() => removeCustomSection(i)} className="text-xs font-semibold text-stone-400 hover:text-red-500 mt-2">Remove section</button>
+                </div>
+              ))}
+              <button onClick={addCustomSection} className="w-full bg-stone-100 hover:bg-stone-200 text-stone-700 py-2 rounded-lg font-semibold text-sm transition-all mt-3">+ Add a custom section</button>
+            </div>
+
             {/* Template gallery */}
             <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-sm">
               <h2 className="font-bold text-stone-900 mb-1">🎨 Choose a Template</h2>
@@ -646,6 +735,31 @@ ${templates[template]}
                   </div>
                 ))}</>
               )}
+
+              {/* Optional text sections in preview */}
+              {[
+                { label: "Certifications", val: certifications },
+                { label: "Awards & Achievements", val: awards },
+                { label: "Languages", val: languages },
+                { label: "Volunteer Experience", val: volunteer },
+                { label: "Courses & Training", val: courses },
+                { label: "Professional Affiliations", val: affiliations },
+                { label: "Publications", val: publications },
+                { label: "Interests", val: interests },
+              ].filter(s => s.val.trim()).map((s) => (
+                <div key={s.label}>
+                  <div className="font-bold uppercase tracking-wide text-stone-800 border-b border-stone-800 pb-0.5 mb-1.5 mt-3 text-xs">{s.label}</div>
+                  <p className="text-stone-700 mb-2 whitespace-pre-line">{s.val}</p>
+                </div>
+              ))}
+
+              {/* Custom sections in preview */}
+              {customSections.filter(cs => cs.title.trim() && cs.content.trim()).map((cs, i) => (
+                <div key={i}>
+                  <div className="font-bold uppercase tracking-wide text-stone-800 border-b border-stone-800 pb-0.5 mb-1.5 mt-3 text-xs">{cs.title}</div>
+                  <p className="text-stone-700 mb-2 whitespace-pre-line">{cs.content}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>

@@ -6,8 +6,12 @@ import pdfplumber
 import io
 import os
 import json
+import requests
 
 load_dotenv()
+
+# Google Sheet web app — collects emails & feedback reliably (survives server restarts)
+GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbyJsDT2oLV9QMh3JPk8X7TDkj5Yq_j6amjgMrn4VFUmysdk0cwBVlcLSwLac-6bjIlp/exec"
 
 app = FastAPI()
 
@@ -425,28 +429,38 @@ Original: {text}"""
 
 @app.post("/feedback")
 async def save_feedback(data: dict):
+    rating = data.get("rating", "")
+    message = data.get("message", "")
+    # Send to Google Sheet — reuse the email column, tagged as feedback
     try:
-        rating = data.get("rating", "")
-        message = data.get("message", "")
+        feedback_line = f"[FEEDBACK] {rating}★ — {message}"
+        requests.post(GOOGLE_SHEET_URL, json={"email": feedback_line}, timeout=5)
+        print("Feedback sent to Google Sheet:", rating, message[:50])
+    except Exception as e:
+        print("Google Sheet error:", str(e))
+    # Local backup
+    try:
         with open("feedback.csv", "a") as f:
-            # basic CSV escaping
             clean_msg = str(message).replace("\n", " ").replace(",", ";")
             f.write(f"{rating},{clean_msg}\n")
-        print("Feedback saved:", rating, message[:50])
-        return {"message": "Thanks for your feedback!"}
-    except Exception as e:
-        print("Feedback error:", str(e))
-        return {"message": "Feedback received"}
+    except Exception:
+        pass
+    return {"message": "Thanks for your feedback!"}
 
 
 @app.post("/save-email")
 async def save_email(data: dict):
+    email = data.get("email", "")
+    # Send to Google Sheet (reliable, survives restarts)
     try:
-        email = data.get("email")
+        requests.post(GOOGLE_SHEET_URL, json={"email": email}, timeout=5)
+        print("Email sent to Google Sheet:", email)
+    except Exception as e:
+        print("Google Sheet error:", str(e))
+    # Also keep a local backup copy
+    try:
         with open("emails.csv", "a") as f:
             f.write(f"{email}\n")
-        print("Email saved:", email)
-        return {"message": "Email saved!"}
-    except Exception as e:
-        print("Error:", str(e))
-        return {"message": "Email captured"}
+    except Exception:
+        pass
+    return {"message": "Email saved!"}

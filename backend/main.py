@@ -429,13 +429,26 @@ Original: {text}"""
 
 @app.post("/suggest-bullets")
 async def suggest_bullets(data: dict):
-    """Generate ready-to-use resume bullet suggestions for a given job title."""
+    """Generate ready-to-use resume bullet points OR skills for a given job title."""
     try:
         job_title = data.get("job_title", "").strip()
+        mode = data.get("mode", "bullets")  # "bullets" or "skills"
         if not job_title:
             return {"bullets": []}
 
-        prompt = f"""You are an expert resume writer. Generate 5 strong, ready-to-use resume bullet points for the job title: "{job_title}".
+        if mode == "skills":
+            prompt = f"""You are an expert resume writer. List 10 of the most relevant, in-demand skills for the job title: "{job_title}".
+
+RULES:
+- Mix of hard/technical skills and key soft skills that employers and ATS systems look for
+- Each should be short (1-4 words), e.g. "Salesforce CRM", "Data Analysis", "Team Leadership"
+- No explanations, no numbering, no symbols
+
+Return ONLY a JSON array of 10 short strings, no markdown, no explanation.
+Example: ["Salesforce CRM", "Cold Calling", "Lead Generation", ...]"""
+            max_t = 400
+        else:
+            prompt = f"""You are an expert resume writer. Generate 5 strong, ready-to-use resume bullet points for the job title: "{job_title}".
 
 RULES:
 - Each bullet starts with a powerful action verb
@@ -445,20 +458,22 @@ RULES:
 
 Return ONLY a JSON array of 5 strings, no markdown, no explanation. Example format:
 ["Managed a team of 5 to deliver X", "Increased Y by 30% through Z", ...]"""
+            max_t = 600
 
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.6,
-            max_tokens=600,
+            max_tokens=max_t,
         )
         raw = strip_json(response.choices[0].message.content)
-        bullets = json.loads(raw)
-        if isinstance(bullets, list):
-            return {"bullets": [str(b) for b in bullets][:5]}
+        items = json.loads(raw)
+        if isinstance(items, list):
+            limit = 10 if mode == "skills" else 5
+            return {"bullets": [str(b) for b in items][:limit]}
         return {"bullets": []}
     except Exception as e:
-        print("Suggest bullets error:", str(e))
+        print("Suggest error:", str(e))
         return {"bullets": []}
 
 

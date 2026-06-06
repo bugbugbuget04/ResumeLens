@@ -79,6 +79,11 @@ export default function Builder() {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [suggestLoading, setSuggestLoading] = useState(false);
 
+  // Skill suggestions
+  const [skillSuggestions, setSkillSuggestions] = useState<string[]>([]);
+  const [skillSuggestLoading, setSkillSuggestLoading] = useState(false);
+  const [showSkillSuggest, setShowSkillSuggest] = useState(false);
+
   const goHome = () => { window.location.href = "/"; };
 
   const polish = async (text: string, fieldType: string, key: string, apply: (v: string) => void) => {
@@ -111,6 +116,27 @@ export default function Builder() {
     if (emptyIdx >= 0) copy[expIndex].bullets[emptyIdx] = bullet;
     else copy[expIndex].bullets.push(bullet);
     setExperiences(copy);
+  };
+
+  const fetchSkillSuggestions = async () => {
+    const role = targetRole.trim() || (experiences[0] && experiences[0].title.trim());
+    if (!role) { alert("Add a Target Role at the top (or a job title under Experience) and I'll suggest relevant skills."); return; }
+    setShowSkillSuggest(true);
+    setSkillSuggestLoading(true);
+    setSkillSuggestions([]);
+    try {
+      const res = await axios.post(`${API}/suggest-bullets`, { job_title: role, mode: "skills" });
+      if (res.data?.bullets) setSkillSuggestions(res.data.bullets);
+    } catch {}
+    setSkillSuggestLoading(false);
+  };
+
+  const addSkill = (skill: string) => {
+    const current = skills.trim();
+    // avoid duplicates
+    const existing = current.split(",").map(s => s.trim().toLowerCase());
+    if (existing.includes(skill.toLowerCase())) return;
+    setSkills(current ? `${current}, ${skill}` : skill);
   };
 
   // Experience handlers
@@ -453,7 +479,37 @@ ${templates[template]}
 
             {/* Skills */}
             <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-sm">
-              <h2 className="font-bold text-stone-900 mb-3">🛠️ Skills</h2>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-bold text-stone-900">🛠️ Skills</h2>
+                <button onClick={fetchSkillSuggestions}
+                  className="text-xs font-bold px-2 py-1 rounded-md bg-yellow-100 border border-yellow-300 text-yellow-700 hover:bg-yellow-200 transition-all">
+                  💡 Suggest skills
+                </button>
+              </div>
+              {/* Skill suggestions panel */}
+              {showSkillSuggest && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
+                  {skillSuggestLoading ? (
+                    <div className="flex items-center gap-2 text-yellow-700 text-sm"><span className="animate-spin inline-block w-4 h-4 border-2 border-yellow-600 border-t-transparent rounded-full" /> Finding relevant skills…</div>
+                  ) : skillSuggestions.length > 0 ? (
+                    <>
+                      <p className="text-xs font-semibold text-stone-600 mb-2">Tap to add to your skills:</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {skillSuggestions.map((s, si) => (
+                          <button key={si} onClick={() => addSkill(s)}
+                            className="text-xs text-stone-700 bg-white border border-stone-200 rounded-full px-3 py-1 hover:border-yellow-400 hover:bg-yellow-50 transition-all">
+                            + {s}
+                          </button>
+                        ))}
+                      </div>
+                      <button onClick={() => { setShowSkillSuggest(false); setSkillSuggestions([]); }}
+                        className="text-xs text-stone-400 hover:text-stone-600 underline mt-2">Close suggestions</button>
+                    </>
+                  ) : (
+                    <p className="text-sm text-stone-500">No suggestions returned — try again.</p>
+                  )}
+                </div>
+              )}
               <div className="flex gap-2 items-start">
                 <textarea className={inputCls} rows={2} value={skills} onChange={e => setSkills(e.target.value)} placeholder="Python, React, SQL, Project Management..." />
                 <PolishBtn k="skills" onClick={() => polish(skills, "skill", "skills", setSkills)} />

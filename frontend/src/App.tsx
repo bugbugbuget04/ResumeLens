@@ -348,7 +348,7 @@ export default function App() {
   const handleDownloadCLPDF = () => {
     if (!clResult?.cover_letter) return;
     const paragraphs = clResult.cover_letter.split("\n").map((l: string) => l.trim() ? `<p>${l.trim()}</p>` : `<br/>`).join("\n");
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Cover Letter</title>
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Cover Letter — ResumeLenz</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='4' y='2' width='18' height='22' rx='2' fill='none' stroke='%23eab308' stroke-width='1.5'/%3E%3Ccircle cx='22' cy='22' r='6' fill='%231c1917' stroke='%23facc15' stroke-width='2'/%3E%3Cline x1='26.5' y1='26.5' x2='30' y2='30' stroke='%23facc15' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E"/>
 <style>@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Lato',Arial,sans-serif;font-size:11.5pt;line-height:1.7;color:#1a1a1a;padding:1in 0.9in;max-width:8.5in;margin:0 auto}p{margin-bottom:6px}
 @media print{body{padding:0.7in 0.8in}}</style></head><body>${paragraphs}
@@ -367,7 +367,7 @@ export default function App() {
       if (!t) return `<br/>`;
       return `<p>${t}</p>`;
     }).join("\n");
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Resume</title>
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Resume — ResumeLenz</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='4' y='2' width='18' height='22' rx='2' fill='none' stroke='%23eab308' stroke-width='1.5'/%3E%3Ccircle cx='22' cy='22' r='6' fill='%231c1917' stroke='%23facc15' stroke-width='2'/%3E%3Cline x1='26.5' y1='26.5' x2='30' y2='30' stroke='%23facc15' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E"/>
 <style>@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Lato',Arial,sans-serif;font-size:11pt;line-height:1.55;color:#1a1a1a;padding:0.85in 0.8in;max-width:8.5in;margin:0 auto}
 h2{font-size:10pt;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;border-bottom:1.5px solid #1a1a1a;padding-bottom:3px;margin-top:18px;margin-bottom:6px}

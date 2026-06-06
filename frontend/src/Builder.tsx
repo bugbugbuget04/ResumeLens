@@ -369,7 +369,8 @@ ${customHtml}`;
       ? `<div class="header-block"><h1>${name || "Your Name"}</h1><div class="contact">${contactLine}</div></div><div class="body-pad">${sectionsHtml}<div style="margin-top:24px;border-top:1px solid #ddd;padding-top:8px;font-size:8pt;color:#999;text-align:center;">Built with ResumeLenz · resumelenz.com</div></div>`
       : `<h1>${name || "Your Name"}</h1><div class="contact">${contactLine}</div>${sectionsHtml}<div style="margin-top:24px;border-top:1px solid #ddd;padding-top:8px;font-size:8pt;color:#999;text-align:center;">Built with ResumeLenz · resumelenz.com</div>`;
 
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${name || "Resume"}</title>
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${name || "Resume"} — ResumeLenz</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='4' y='2' width='18' height='22' rx='2' fill='none' stroke='%23eab308' stroke-width='1.5'/%3E%3Ccircle cx='22' cy='22' r='6' fill='%231c1917' stroke='%23facc15' stroke-width='2'/%3E%3Cline x1='26.5' y1='26.5' x2='30' y2='30' stroke='%23facc15' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E"/>
 <style>@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap');
 ${sharedCss}
 ${templates[template]}

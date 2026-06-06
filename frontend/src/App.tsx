@@ -42,94 +42,108 @@ function ScoreBar({ score, color }: { score: number; color: string }) {
 function Doodles() {
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }} aria-hidden="true">
-      {/* Squiggle top-left — deep amber */}
-      <svg className="absolute top-24 left-8 doodle-float" width="90" height="40" viewBox="0 0 90 40" fill="none">
-        <path d="M5 20 Q 20 5, 30 20 T 55 20 T 80 20" stroke="#d97706" strokeWidth="3.5" strokeLinecap="round" opacity="0.85" />
-      </svg>
-      {/* Star top-right — muted blue */}
-      <svg className="absolute top-32 right-16 doodle-spin" width="52" height="52" viewBox="0 0 48 48" fill="none">
-        <path d="M24 4 L28 18 L42 18 L31 27 L35 41 L24 32 L13 41 L17 27 L6 18 L20 18 Z" stroke="#3b82f6" strokeWidth="2.5" fill="#bfdbfe" opacity="0.7" />
-      </svg>
-      {/* Circle dots cluster left — amber + blue mix */}
-      <svg className="absolute top-1/2 left-12 doodle-float-slow" width="60" height="60" viewBox="0 0 60 60" fill="none">
-        <circle cx="10" cy="10" r="5" fill="#d97706" opacity="0.85" />
-        <circle cx="30" cy="20" r="5" fill="#3b82f6" opacity="0.6" />
-        <circle cx="15" cy="35" r="5" fill="#f59e0b" opacity="0.85" />
-        <circle cx="40" cy="45" r="5" fill="#60a5fa" opacity="0.6" />
-      </svg>
-      {/* Loop/spiral bottom-right — deep amber */}
-      <svg className="absolute bottom-32 right-20 doodle-float" width="70" height="70" viewBox="0 0 70 70" fill="none">
-        <path d="M35 10 a 25 25 0 1 1 -0.1 0 M35 22 a 13 13 0 1 0 0.1 0" stroke="#d97706" strokeWidth="3" strokeLinecap="round" opacity="0.7" />
-      </svg>
-      {/* Underline swoosh bottom-left — muted blue */}
-      <svg className="absolute bottom-40 left-16 doodle-float-slow" width="110" height="30" viewBox="0 0 110 30" fill="none">
-        <path d="M5 15 Q 40 28, 70 12 T 105 14" stroke="#3b82f6" strokeWidth="3.5" strokeLinecap="round" opacity="0.6" />
-      </svg>
-      {/* Plus marks — deep amber */}
-      <svg className="absolute top-1/3 right-1/4 doodle-spin-slow" width="32" height="32" viewBox="0 0 30 30" fill="none">
-        <path d="M15 5 V 25 M5 15 H 25" stroke="#d97706" strokeWidth="3.5" strokeLinecap="round" opacity="0.75" />
-      </svg>
-      {/* Sparkle — muted blue */}
-      <svg className="absolute bottom-1/4 left-1/2 doodle-float" width="38" height="38" viewBox="0 0 36 36" fill="none">
-        <path d="M18 3 L21 15 L33 18 L21 21 L18 33 L15 21 L3 18 L15 15 Z" fill="#60a5fa" opacity="0.65" />
-      </svg>
-      {/* Extra small amber dot top-center */}
-      <svg className="absolute top-16 left-1/2 doodle-float-slow" width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <circle cx="10" cy="10" r="6" fill="#f59e0b" opacity="0.7" />
-      </svg>
-      {/* Extra blue squiggle mid-right */}
-      <svg className="absolute top-2/3 right-10 doodle-float" width="70" height="30" viewBox="0 0 70 30" fill="none">
-        <path d="M5 15 Q 18 3, 28 15 T 50 15 T 65 15" stroke="#3b82f6" strokeWidth="3" strokeLinecap="round" opacity="0.55" />
+
+      {/* ── Statue of Liberty (NYC) — teal/green — top left ── */}
+      <svg className="absolute top-20 left-6 doodle-float-slow hidden md:block" width="70" height="150" viewBox="0 0 70 150" fill="none" opacity="0.8">
+        {/* torch arm */}
+        <line x1="42" y1="40" x2="52" y2="14" stroke="#0d9488" strokeWidth="2.5" strokeLinecap="round" />
+        <path d="M50 14 Q 52 6, 54 14 Q 56 8, 52 4 Q 48 8, 50 14 Z" fill="#fbbf24" stroke="#0d9488" strokeWidth="1.5" />
+        {/* head + crown */}
+        <circle cx="35" cy="34" r="7" fill="#5eead4" stroke="#0d9488" strokeWidth="2" />
+        <path d="M28 30 L26 24 M31 28 L30 21 M35 27 L35 20 M39 28 L40 21 M42 30 L44 24" stroke="#0d9488" strokeWidth="1.8" strokeLinecap="round" />
+        {/* robe body */}
+        <path d="M35 41 Q 26 50, 24 78 Q 23 95, 28 110 L 42 110 Q 47 95, 46 78 Q 44 50, 35 41 Z" fill="#5eead4" stroke="#0d9488" strokeWidth="2" />
+        <line x1="30" y1="60" x2="40" y2="62" stroke="#0d9488" strokeWidth="1" opacity="0.6" />
+        <line x1="29" y1="72" x2="41" y2="74" stroke="#0d9488" strokeWidth="1" opacity="0.6" />
+        {/* tablet */}
+        <rect x="40" y="58" width="12" height="16" rx="1" fill="#99f6e4" stroke="#0d9488" strokeWidth="1.8" transform="rotate(18 46 66)" />
+        {/* pedestal */}
+        <rect x="22" y="110" width="26" height="14" fill="#99f6e4" stroke="#0d9488" strokeWidth="2" />
+        <rect x="18" y="124" width="34" height="10" fill="#5eead4" stroke="#0d9488" strokeWidth="2" />
       </svg>
 
-      {/* ── PROFESSIONAL PEOPLE SCENES ── */}
-      {/* Scene 1: Person handing a resume to another (side view) — left side */}
-      <svg className="absolute top-[55%] left-2 doodle-float-slow hidden lg:block" width="180" height="150" viewBox="0 0 180 150" fill="none">
-        {/* Person A (giving) — amber */}
-        <circle cx="40" cy="28" r="14" fill="#fde68a" stroke="#b45309" strokeWidth="2.5" />
-        {/* hair */}
-        <path d="M27 24 Q 40 8, 53 24 Q 50 16, 40 15 Q 30 16, 27 24 Z" fill="#b45309" opacity="0.85" />
-        {/* body / torso */}
-        <path d="M40 42 Q 22 46, 22 80 L 22 105 Q 40 110, 58 105 L 58 75 Q 58 48, 40 42 Z" fill="#fcd34d" stroke="#b45309" strokeWidth="2.5" />
-        {/* arm extending resume */}
-        <path d="M56 70 Q 75 66, 88 72" stroke="#b45309" strokeWidth="6" strokeLinecap="round" fill="none" />
+      {/* ── Golden Gate Bridge (SF) — international orange — top right ── */}
+      <svg className="absolute top-24 right-8 doodle-float hidden md:block" width="170" height="90" viewBox="0 0 170 90" fill="none" opacity="0.8">
+        <line x1="5" y1="80" x2="165" y2="80" stroke="#c1440e" strokeWidth="2.5" />
+        {/* towers */}
+        <line x1="45" y1="80" x2="45" y2="12" stroke="#c1440e" strokeWidth="3.5" strokeLinecap="round" />
+        <line x1="125" y1="80" x2="125" y2="12" stroke="#c1440e" strokeWidth="3.5" strokeLinecap="round" />
+        <line x1="40" y1="22" x2="50" y2="22" stroke="#c1440e" strokeWidth="2.5" />
+        <line x1="120" y1="22" x2="130" y2="22" stroke="#c1440e" strokeWidth="2.5" />
+        {/* main suspension cables */}
+        <path d="M5 50 Q 45 14, 85 46 Q 125 14, 165 50" stroke="#e8590c" strokeWidth="2.5" fill="none" />
+        {/* vertical suspenders */}
+        <line x1="20" y1="40" x2="20" y2="80" stroke="#e8590c" strokeWidth="1" opacity="0.6" />
+        <line x1="65" y1="36" x2="65" y2="80" stroke="#e8590c" strokeWidth="1" opacity="0.6" />
+        <line x1="105" y1="36" x2="105" y2="80" stroke="#e8590c" strokeWidth="1" opacity="0.6" />
+        <line x1="150" y1="40" x2="150" y2="80" stroke="#e8590c" strokeWidth="1" opacity="0.6" />
+      </svg>
+
+      {/* ── Empire State Building (NYC) — amber — left mid ── */}
+      <svg className="absolute top-[42%] left-4 doodle-float hidden lg:block" width="60" height="160" viewBox="0 0 60 160" fill="none" opacity="0.75">
+        <line x1="30" y1="4" x2="30" y2="22" stroke="#d97706" strokeWidth="2" strokeLinecap="round" />
+        <rect x="26" y="22" width="8" height="20" fill="#fcd34d" stroke="#d97706" strokeWidth="1.5" />
+        <rect x="20" y="42" width="20" height="30" fill="#fde68a" stroke="#d97706" strokeWidth="1.8" />
+        <rect x="14" y="72" width="32" height="80" fill="#fcd34d" stroke="#d97706" strokeWidth="2" />
+        {/* windows */}
+        <line x1="22" y1="84" x2="38" y2="84" stroke="#d97706" strokeWidth="0.8" opacity="0.5" />
+        <line x1="22" y1="98" x2="38" y2="98" stroke="#d97706" strokeWidth="0.8" opacity="0.5" />
+        <line x1="22" y1="112" x2="38" y2="112" stroke="#d97706" strokeWidth="0.8" opacity="0.5" />
+        <line x1="22" y1="126" x2="38" y2="126" stroke="#d97706" strokeWidth="0.8" opacity="0.5" />
+        <line x1="30" y1="72" x2="30" y2="152" stroke="#d97706" strokeWidth="0.8" opacity="0.5" />
+      </svg>
+
+      {/* ── Space Needle (Seattle) — slate blue — right mid ── */}
+      <svg className="absolute top-[46%] right-6 doodle-float-slow hidden lg:block" width="80" height="160" viewBox="0 0 80 160" fill="none" opacity="0.8">
+        <line x1="40" y1="2" x2="40" y2="18" stroke="#475569" strokeWidth="1.5" strokeLinecap="round" />
+        {/* saucer */}
+        <ellipse cx="40" cy="30" rx="26" ry="9" fill="#cbd5e1" stroke="#475569" strokeWidth="2" />
+        <path d="M18 26 Q 40 40, 62 26" stroke="#475569" strokeWidth="1.5" fill="none" />
         {/* legs */}
-        <path d="M32 105 L 30 138 M48 105 L 50 138" stroke="#b45309" strokeWidth="6" strokeLinecap="round" />
-        {/* Resume paper */}
-        <rect x="86" y="60" width="20" height="26" rx="2" fill="#bfdbfe" stroke="#2563eb" strokeWidth="2" transform="rotate(10 96 73)" />
-        <line x1="91" y1="68" x2="102" y2="70" stroke="#2563eb" strokeWidth="1.3" opacity="0.7" transform="rotate(10 96 73)" />
-        <line x1="90" y1="73" x2="101" y2="75" stroke="#2563eb" strokeWidth="1.3" opacity="0.7" transform="rotate(10 96 73)" />
-        <line x1="90" y1="78" x2="98" y2="79" stroke="#2563eb" strokeWidth="1.3" opacity="0.7" transform="rotate(10 96 73)" />
-        {/* Person B (receiving) — blue */}
-        <circle cx="148" cy="28" r="14" fill="#bfdbfe" stroke="#2563eb" strokeWidth="2.5" />
-        <path d="M135 24 Q 148 8, 161 24 Q 158 16, 148 15 Q 138 16, 135 24 Z" fill="#2563eb" opacity="0.8" />
-        <path d="M148 42 Q 130 46, 130 80 L 130 105 Q 148 110, 166 105 L 166 75 Q 166 48, 148 42 Z" fill="#93c5fd" stroke="#2563eb" strokeWidth="2.5" />
-        {/* arm reaching for resume */}
-        <path d="M132 70 Q 118 68, 108 72" stroke="#2563eb" strokeWidth="6" strokeLinecap="round" fill="none" />
-        <path d="M140 105 L 138 138 M156 105 L 158 138" stroke="#2563eb" strokeWidth="6" strokeLinecap="round" />
+        <path d="M34 38 Q 30 90, 24 150" stroke="#475569" strokeWidth="2.5" fill="none" />
+        <path d="M46 38 Q 50 90, 56 150" stroke="#475569" strokeWidth="2.5" fill="none" />
+        <path d="M40 38 L 40 150" stroke="#475569" strokeWidth="1.5" opacity="0.5" />
+        <path d="M30 100 Q 40 108, 50 100" stroke="#475569" strokeWidth="1.5" fill="none" />
+        <line x1="22" y1="150" x2="58" y2="150" stroke="#475569" strokeWidth="2.5" strokeLinecap="round" />
       </svg>
 
-      {/* Scene 2: Face-to-face interview across a desk (side view) — right side */}
-      <svg className="absolute top-[38%] right-2 doodle-float hidden lg:block" width="190" height="150" viewBox="0 0 190 150" fill="none">
-        {/* Interviewer (left) — amber, seated */}
-        <circle cx="42" cy="30" r="14" fill="#fde68a" stroke="#b45309" strokeWidth="2.5" />
-        <path d="M29 26 Q 42 10, 55 26 Q 52 18, 42 17 Q 32 18, 29 26 Z" fill="#b45309" opacity="0.85" />
-        <path d="M42 44 Q 24 48, 24 78 L 24 92 Q 42 96, 60 92 L 60 74 Q 60 50, 42 44 Z" fill="#fcd34d" stroke="#b45309" strokeWidth="2.5" />
-        {/* gesturing arm */}
-        <path d="M58 66 Q 72 62, 80 70" stroke="#b45309" strokeWidth="5.5" strokeLinecap="round" fill="none" />
-        {/* Candidate (right) — blue, seated */}
-        <circle cx="148" cy="30" r="14" fill="#bfdbfe" stroke="#2563eb" strokeWidth="2.5" />
-        <path d="M135 26 Q 148 10, 161 26 Q 158 18, 148 17 Q 138 18, 135 26 Z" fill="#2563eb" opacity="0.8" />
-        <path d="M148 44 Q 130 48, 130 78 L 130 92 Q 148 96, 166 92 L 166 74 Q 166 50, 148 44 Z" fill="#93c5fd" stroke="#2563eb" strokeWidth="2.5" />
-        <path d="M132 66 Q 118 62, 110 70" stroke="#2563eb" strokeWidth="5.5" strokeLinecap="round" fill="none" />
-        {/* Desk between them */}
-        <rect x="62" y="96" width="66" height="8" rx="2" fill="#fbbf24" stroke="#b45309" strokeWidth="2" />
-        <line x1="70" y1="104" x2="70" y2="135" stroke="#b45309" strokeWidth="2.5" strokeLinecap="round" />
-        <line x1="120" y1="104" x2="120" y2="135" stroke="#b45309" strokeWidth="2.5" strokeLinecap="round" />
-        {/* Speech / conversation dots */}
-        <circle cx="85" cy="48" r="3" fill="#2563eb" opacity="0.8" />
-        <circle cx="95" cy="43" r="3" fill="#d97706" opacity="0.75" />
-        <circle cx="105" cy="48" r="3" fill="#2563eb" opacity="0.8" />
+      {/* ── US Capitol (DC) — warm stone — bottom left ── */}
+      <svg className="absolute bottom-24 left-8 doodle-float hidden md:block" width="130" height="90" viewBox="0 0 130 90" fill="none" opacity="0.8">
+        {/* dome */}
+        <path d="M50 38 Q 65 6, 80 38 Z" fill="#e7e5e4" stroke="#a8a29e" strokeWidth="2" />
+        <line x1="65" y1="4" x2="65" y2="38" stroke="#a8a29e" strokeWidth="1" opacity="0.5" />
+        <circle cx="65" cy="6" r="2" fill="#a8a29e" />
+        <rect x="55" y="38" width="20" height="8" fill="#d6d3d1" stroke="#a8a29e" strokeWidth="1.5" />
+        {/* main building */}
+        <rect x="20" y="46" width="90" height="32" fill="#e7e5e4" stroke="#a8a29e" strokeWidth="2" />
+        {/* columns */}
+        <line x1="30" y1="50" x2="30" y2="74" stroke="#a8a29e" strokeWidth="1.5" />
+        <line x1="40" y1="50" x2="40" y2="74" stroke="#a8a29e" strokeWidth="1.5" />
+        <line x1="90" y1="50" x2="90" y2="74" stroke="#a8a29e" strokeWidth="1.5" />
+        <line x1="100" y1="50" x2="100" y2="74" stroke="#a8a29e" strokeWidth="1.5" />
+        <line x1="14" y1="78" x2="116" y2="78" stroke="#a8a29e" strokeWidth="2.5" strokeLinecap="round" />
+      </svg>
+
+      {/* ── Gateway Arch (St. Louis) — silver/grey — bottom center ── */}
+      <svg className="absolute bottom-1/4 left-1/2 doodle-float-slow hidden lg:block" width="90" height="100" viewBox="0 0 90 100" fill="none" opacity="0.7">
+        <path d="M10 95 Q 45 0, 80 95" stroke="#94a3b8" strokeWidth="4" fill="none" strokeLinecap="round" />
+        <path d="M20 95 Q 45 18, 70 95" stroke="#cbd5e1" strokeWidth="2" fill="none" opacity="0.7" />
+      </svg>
+
+      {/* ── Bass Pro Pyramid (Memphis) — deep green — bottom right ── */}
+      <svg className="absolute bottom-28 right-10 doodle-float hidden lg:block" width="110" height="100" viewBox="0 0 110 100" fill="none" opacity="0.75">
+        <path d="M55 8 L 100 90 L 10 90 Z" fill="#bbf7d0" stroke="#15803d" strokeWidth="2.5" strokeLinejoin="round" />
+        {/* cross hatch panels */}
+        <path d="M55 8 L 55 90 M30 49 L 80 49 M20 70 L 90 70" stroke="#15803d" strokeWidth="1" opacity="0.5" />
+        <path d="M55 8 L 32 50 L 18 84 M55 8 L 78 50 L 92 84" stroke="#15803d" strokeWidth="1" opacity="0.45" />
+      </svg>
+
+      {/* ── A couple of subtle accent doodles to fill gaps ── */}
+      <svg className="absolute top-1/3 left-1/3 doodle-spin-slow hidden lg:block" width="26" height="26" viewBox="0 0 26 26" fill="none">
+        <path d="M13 3 L15 11 L23 13 L15 15 L13 23 L11 15 L3 13 L11 11 Z" fill="#fbbf24" opacity="0.5" />
+      </svg>
+      <svg className="absolute bottom-1/3 right-1/3 doodle-float hidden lg:block" width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <circle cx="11" cy="11" r="6" stroke="#3b82f6" strokeWidth="2.5" fill="none" opacity="0.45" />
       </svg>
     </div>
   );

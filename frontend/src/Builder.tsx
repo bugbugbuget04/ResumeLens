@@ -396,7 +396,7 @@ ${templates[template]}
                   {suggestFor === i && (
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
                       {suggestLoading ? (
-                        <div className="flex items-center gap-2 text-yellow-700 text-sm"><Spinner color="text-yellow-600" /> Generating ideas for "{exp.title}"…</div>
+                        <div className="flex items-center gap-2 text-yellow-700 text-sm"><span className="animate-spin inline-block w-4 h-4 border-2 border-yellow-600 border-t-transparent rounded-full" /> Generating ideas for "{exp.title}"…</div>
                       ) : suggestions.length > 0 ? (
                         <>
                           <p className="text-xs font-semibold text-stone-600 mb-2">Tap any to add it (you can edit after):</p>

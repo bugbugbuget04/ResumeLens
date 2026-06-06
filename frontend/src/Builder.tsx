@@ -71,7 +71,7 @@ export default function Builder() {
   const [polishing, setPolishing] = useState<string>("");
 
   // Template + accent color
-  const [template, setTemplate] = useState<"classic" | "modern" | "compact" | "elegant" | "bold">("classic");
+  const [template, setTemplate] = useState<"classic" | "corporate" | "tech" | "minimal" | "executive" | "creative" | "boldheader" | "sectioned" | "twotone">("classic");
   const [accent, setAccent] = useState("#2563eb");
 
   const goHome = () => { window.location.href = "/"; };
@@ -159,44 +159,82 @@ export default function Builder() {
 
     const contactLine = [email, phone, location, linkedin].filter(Boolean).join("  •  ");
 
-    // Template-specific CSS — all single-column + standard fonts = ATS-safe
+    // Template-specific CSS. ATS-safe = single column, no sidebars/boxes. Visual = boxed/sidebar (best for human review).
     const templates: Record<string, string> = {
+      // ── ATS-SAFE (single column) ──
       classic: `
         body{font-family:'Lato',Arial,sans-serif;font-size:10.5pt;line-height:1.5;color:#1a1a1a;padding:0.7in 0.75in;max-width:8.5in;margin:0 auto}
         h1{font-size:22pt;font-weight:700;letter-spacing:0.02em;margin-bottom:2px;color:#1a1a1a}
         .contact{font-size:9.5pt;color:#555;margin-bottom:14px}
         h2{font-size:10.5pt;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;border-bottom:1.5px solid #1a1a1a;padding-bottom:2px;margin-top:16px;margin-bottom:7px;color:#1a1a1a}
         .entry-title{font-weight:700;font-size:10.5pt}`,
-      modern: `
-        body{font-family:'Lato',Arial,sans-serif;font-size:10.5pt;line-height:1.5;color:#1f2937;padding:0.7in 0.75in;max-width:8.5in;margin:0 auto}
-        h1{font-size:24pt;font-weight:700;letter-spacing:0.01em;margin-bottom:2px;color:${accent}}
-        .contact{font-size:9.5pt;color:#6b7280;margin-bottom:14px}
-        h2{font-size:11pt;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid ${accent};padding-bottom:3px;margin-top:16px;margin-bottom:7px;color:${accent}}
-        .entry-title{font-weight:700;font-size:10.5pt;color:#111827}`,
-      compact: `
-        body{font-family:'Lato',Arial,sans-serif;font-size:9.5pt;line-height:1.35;color:#1a1a1a;padding:0.5in 0.6in;max-width:8.5in;margin:0 auto}
-        h1{font-size:18pt;font-weight:700;margin-bottom:1px}
-        .contact{font-size:8.5pt;color:#555;margin-bottom:9px}
-        h2{font-size:9.5pt;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid #999;padding-bottom:1px;margin-top:10px;margin-bottom:4px}
-        .entry{margin-bottom:6px!important}
-        .entry-title{font-weight:700;font-size:9.5pt}`,
-      elegant: `
-        body{font-family:Georgia,'Times New Roman',serif;font-size:10.5pt;line-height:1.55;color:#222;padding:0.75in 0.8in;max-width:8.5in;margin:0 auto}
-        h1{font-size:23pt;font-weight:700;letter-spacing:0.04em;margin-bottom:4px;text-align:center}
-        .contact{font-size:9.5pt;color:#666;margin-bottom:16px;text-align:center;border-bottom:1px solid #ccc;padding-bottom:10px}
-        h2{font-size:11pt;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-top:16px;margin-bottom:7px;color:#333}
+      corporate: `
+        body{font-family:Georgia,'Times New Roman',serif;font-size:10.5pt;line-height:1.5;color:#1a2233;padding:0.7in 0.8in;max-width:8.5in;margin:0 auto}
+        h1{font-size:21pt;font-weight:700;letter-spacing:0.03em;margin-bottom:3px;color:#1a2233}
+        .contact{font-size:9.5pt;color:#556;margin-bottom:14px;border-bottom:2px solid #1a2233;padding-bottom:9px}
+        h2{font-size:10.5pt;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;margin-top:15px;margin-bottom:6px;color:#1a2233}
         .entry-title{font-weight:700;font-size:10.5pt}`,
-      bold: `
+      tech: `
+        body{font-family:'Lato',Arial,sans-serif;font-size:10.5pt;line-height:1.5;color:#1f2937;padding:0.7in 0.75in;max-width:8.5in;margin:0 auto}
+        h1{font-size:22pt;font-weight:700;margin-bottom:2px;color:${accent};font-family:'Courier New',monospace}
+        .contact{font-size:9.5pt;color:#6b7280;margin-bottom:14px;font-family:'Courier New',monospace}
+        h2{font-size:10.5pt;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-top:16px;margin-bottom:7px;color:${accent};font-family:'Courier New',monospace}
+        h2:before{content:"// ";opacity:0.6}
+        .entry-title{font-weight:700;font-size:10.5pt;color:#111827}`,
+      minimal: `
+        body{font-family:'Lato',Arial,sans-serif;font-size:10.5pt;line-height:1.6;color:#333;padding:0.85in 0.9in;max-width:8.5in;margin:0 auto;font-weight:400}
+        h1{font-size:20pt;font-weight:400;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:4px;color:#111}
+        .contact{font-size:9pt;color:#888;margin-bottom:22px;letter-spacing:0.04em}
+        h2{font-size:9pt;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-top:20px;margin-bottom:8px;color:#999}
+        .entry-title{font-weight:700;font-size:10.5pt;color:#222}`,
+      executive: `
+        body{font-family:Georgia,'Times New Roman',serif;font-size:10.5pt;line-height:1.55;color:#222;padding:0.75in 0.8in;max-width:8.5in;margin:0 auto}
+        h1{font-size:24pt;font-weight:700;letter-spacing:0.04em;margin-bottom:4px;text-align:center;color:#1a1a1a}
+        .contact{font-size:9.5pt;color:#666;margin-bottom:16px;text-align:center;border-bottom:1px solid #ccc;padding-bottom:10px}
+        h2{font-size:11pt;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-top:16px;margin-bottom:7px;color:#333;text-align:center}
+        .entry-title{font-weight:700;font-size:10.5pt}`,
+      // ── VISUAL (boxed / header bands — best for human review) ──
+      creative: `
+        body{font-family:'Lato',Arial,sans-serif;font-size:10.5pt;line-height:1.5;color:#222;padding:0;max-width:8.5in;margin:0 auto}
+        .header-block{background:${accent};color:#fff;padding:0.45in 0.75in}
+        .header-block h1{font-size:27pt;font-weight:700;color:#fff;margin-bottom:3px;letter-spacing:0.02em}
+        .header-block .contact{font-size:9.5pt;color:#fff;opacity:0.92;margin-bottom:0}
+        .body-pad{padding:0.3in 0.75in 0.6in}
+        h1{font-size:27pt;font-weight:700}
+        .contact{font-size:9.5pt;margin-bottom:14px}
+        h2{font-size:11pt;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:${accent};margin-top:15px;margin-bottom:6px;display:inline-block;border-bottom:3px solid ${accent};padding-bottom:1px}
+        .entry-title{font-weight:700;font-size:10.5pt}`,
+      boldheader: `
         body{font-family:'Lato',Arial,sans-serif;font-size:10.5pt;line-height:1.5;color:#1a1a1a;padding:0 0 0.6in 0;max-width:8.5in;margin:0 auto}
-        .header-block{background:${accent};color:#fff;padding:0.5in 0.75in;margin-bottom:16px}
-        .header-block h1{font-size:26pt;font-weight:700;color:#fff;margin-bottom:3px}
+        .header-block{background:${accent};color:#fff;padding:0.5in 0.75in;margin-bottom:16px;text-align:center}
+        .header-block h1{font-size:28pt;font-weight:700;color:#fff;margin-bottom:3px}
         .header-block .contact{font-size:9.5pt;color:#fff;opacity:0.9;margin-bottom:0}
         .body-pad{padding:0 0.75in}
-        h1{font-size:26pt;font-weight:700}
+        h1{font-size:28pt;font-weight:700}
         .contact{font-size:9.5pt;color:#555;margin-bottom:14px}
         h2{font-size:11pt;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:${accent};border-bottom:2px solid ${accent};padding-bottom:2px;margin-top:16px;margin-bottom:7px}
         .entry-title{font-weight:700;font-size:10.5pt}`,
+      sectioned: `
+        body{font-family:'Lato',Arial,sans-serif;font-size:10.5pt;line-height:1.5;color:#1a1a1a;padding:0.5in 0.6in;max-width:8.5in;margin:0 auto;background:#fff}
+        h1{font-size:23pt;font-weight:700;margin-bottom:2px;color:${accent}}
+        .contact{font-size:9.5pt;color:#555;margin-bottom:14px}
+        h2{font-size:10pt;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#fff;background:${accent};padding:4px 10px;margin-top:14px;margin-bottom:8px;border-radius:3px}
+        .entry{border-left:3px solid ${accent}33;padding-left:10px;margin-bottom:10px}
+        .entry-title{font-weight:700;font-size:10.5pt}`,
+      twotone: `
+        body{font-family:'Lato',Arial,sans-serif;font-size:10.5pt;line-height:1.5;color:#1a1a1a;padding:0;max-width:8.5in;margin:0 auto}
+        .header-block{border-left:10px solid ${accent};padding:0.5in 0.75in 0.2in}
+        .header-block h1{font-size:26pt;font-weight:700;color:${accent};margin-bottom:3px}
+        .header-block .contact{font-size:9.5pt;color:#555;margin-bottom:0}
+        .body-pad{padding:0.1in 0.75in 0.6in;border-left:10px solid ${accent}22;margin-left:0}
+        h1{font-size:26pt;font-weight:700}
+        .contact{font-size:9.5pt;color:#555;margin-bottom:14px}
+        h2{font-size:10.5pt;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:${accent};margin-top:15px;margin-bottom:6px;border-bottom:1.5px solid ${accent}55;padding-bottom:2px}
+        .entry-title{font-weight:700;font-size:10.5pt}`,
     };
+
+    // Which templates use the header-block wrapper layout
+    const headerBlockTemplates = ["creative", "boldheader", "twotone"];
 
     const sharedCss = `
       *{margin:0;padding:0;box-sizing:border-box}
@@ -216,7 +254,7 @@ ${eduHtml ? `<h2>Education</h2>${eduHtml}` : ""}
 ${skills ? `<h2>Skills</h2><p>${skills}</p>` : ""}
 ${projHtml ? `<h2>Projects</h2>${projHtml}` : ""}`;
 
-    const bodyInner = template === "bold"
+    const bodyInner = headerBlockTemplates.includes(template)
       ? `<div class="header-block"><h1>${name || "Your Name"}</h1><div class="contact">${contactLine}</div></div><div class="body-pad">${sectionsHtml}<div style="margin-top:24px;border-top:1px solid #ddd;padding-top:8px;font-size:8pt;color:#999;text-align:center;">Built with ResumeLenz · resumelenz.com</div></div>`
       : `<h1>${name || "Your Name"}</h1><div class="contact">${contactLine}</div>${sectionsHtml}<div style="margin-top:24px;border-top:1px solid #ddd;padding-top:8px;font-size:8pt;color:#999;text-align:center;">Built with ResumeLenz · resumelenz.com</div>`;
 
@@ -361,26 +399,55 @@ ${templates[template]}
               <button onClick={addProject} className="w-full bg-stone-100 hover:bg-stone-200 text-stone-700 py-2 rounded-lg font-semibold text-sm transition-all">+ Add project</button>
             </div>
 
-            {/* Template picker */}
+            {/* Template gallery */}
             <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-sm">
               <h2 className="font-bold text-stone-900 mb-1">🎨 Choose a Template</h2>
-              <p className="text-stone-500 text-xs mb-3">All templates are single-column and ATS-optimized — they look great to humans <em>and</em> pass the resume-scanning robots.</p>
-              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-4">
+              <p className="text-stone-500 text-xs mb-4">Pick a design that fits your field. ATS-Safe styles are best for online job-board applications; Visual styles look striking when you're emailing a person directly or in creative fields.</p>
+
+              {/* ATS-Safe group */}
+              <div className="mb-2 flex items-center gap-2">
+                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">✅ ATS-Safe</span>
+                <span className="text-stone-400 text-xs">Passes resume-scanning robots · best for online applications</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
                 {([
-                  { id: "classic", label: "Classic" },
-                  { id: "modern", label: "Modern" },
-                  { id: "compact", label: "Compact" },
-                  { id: "elegant", label: "Elegant" },
-                  { id: "bold", label: "Bold" },
+                  { id: "classic", label: "Classic", tip: "Universal — works for any role" },
+                  { id: "corporate", label: "Corporate", tip: "Finance, law, consulting, banking" },
+                  { id: "tech", label: "Tech", tip: "Software, data, IT, engineering" },
+                  { id: "minimal", label: "Minimal", tip: "Clean & airy — any modern role" },
+                  { id: "executive", label: "Executive", tip: "Senior & leadership roles" },
                 ] as const).map((t) => (
                   <button key={t.id} onClick={() => setTemplate(t.id)}
-                    className={`py-2 rounded-lg text-xs font-bold border transition-all ${template === t.id ? "bg-yellow-400 border-yellow-400 text-stone-900" : "bg-stone-50 border-stone-300 text-stone-500 hover:border-yellow-300"}`}>
-                    {t.label}
+                    className={`text-left p-2.5 rounded-lg border transition-all ${template === t.id ? "bg-yellow-50 border-yellow-400" : "bg-stone-50 border-stone-200 hover:border-yellow-300"}`}>
+                    <div className="font-bold text-xs text-stone-900">{t.label}</div>
+                    <div className="text-stone-500 text-[10px] leading-tight mt-0.5">{t.tip}</div>
                   </button>
                 ))}
               </div>
-              {(template === "modern" || template === "bold") && (
-                <div>
+
+              {/* Visual group */}
+              <div className="mb-2 flex items-center gap-2">
+                <span className="text-xs font-bold text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">⚠️ Visual</span>
+                <span className="text-stone-400 text-xs">Eye-catching · best when a human reads it directly</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+                {([
+                  { id: "creative", label: "Creative", tip: "Design, marketing, media" },
+                  { id: "boldheader", label: "Bold Header", tip: "Make a strong first impression" },
+                  { id: "sectioned", label: "Sectioned", tip: "Colored section bars, organized" },
+                  { id: "twotone", label: "Two-Tone", tip: "Accent side band, stylish" },
+                ] as const).map((t) => (
+                  <button key={t.id} onClick={() => setTemplate(t.id)}
+                    className={`text-left p-2.5 rounded-lg border transition-all ${template === t.id ? "bg-yellow-50 border-yellow-400" : "bg-stone-50 border-stone-200 hover:border-yellow-300"}`}>
+                    <div className="font-bold text-xs text-stone-900">{t.label}</div>
+                    <div className="text-stone-500 text-[10px] leading-tight mt-0.5">{t.tip}</div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Accent color — for templates that use it */}
+              {["tech", "creative", "boldheader", "sectioned", "twotone"].includes(template) && (
+                <div className="border-t border-stone-100 pt-3">
                   <label className={labelCls}>Accent Color</label>
                   <div className="flex gap-2 flex-wrap items-center">
                     {["#2563eb", "#0d9488", "#7c3aed", "#be123c", "#b45309", "#15803d", "#1a1a1a"].map((c) => (
@@ -404,9 +471,9 @@ ${templates[template]}
           {/* ── LIVE PREVIEW SIDE ── */}
           <div className="lg:sticky lg:top-6 h-fit">
             <p className="text-xs font-semibold text-stone-400 uppercase tracking-widest mb-2 text-center">Live Preview · {template} template</p>
-            <div className="bg-white border border-stone-300 rounded-xl shadow-lg p-8 text-sm" style={{ minHeight: "600px", fontFamily: template === "elegant" ? "Georgia, serif" : "inherit" }}>
-              <div className="text-2xl font-black" style={{ color: (template === "modern" || template === "bold") ? accent : "#1c1917", textAlign: template === "elegant" ? "center" : "left" }}>{name || "Your Name"}</div>
-              <div className="text-xs text-stone-500 mb-4" style={{ textAlign: template === "elegant" ? "center" : "left" }}>
+            <div className="bg-white border border-stone-300 rounded-xl shadow-lg p-8 text-sm" style={{ minHeight: "600px", fontFamily: (template === "executive" || template === "corporate") ? "Georgia, serif" : "inherit" }}>
+              <div className="text-2xl font-black" style={{ color: ["tech", "creative", "boldheader", "sectioned", "twotone"].includes(template) ? accent : "#1c1917", textAlign: (template === "executive" || template === "boldheader") ? "center" : "left", fontFamily: template === "tech" ? "monospace" : "inherit" }}>{name || "Your Name"}</div>
+              <div className="text-xs text-stone-500 mb-4" style={{ textAlign: (template === "executive" || template === "boldheader") ? "center" : "left" }}>
                 {[email, phone, location, linkedin].filter(Boolean).join("  •  ") || "your contact info"}
               </div>
 

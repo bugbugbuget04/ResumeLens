@@ -70,6 +70,10 @@ export default function Builder() {
   // AI polish loading tracking
   const [polishing, setPolishing] = useState<string>("");
 
+  // Template + accent color
+  const [template, setTemplate] = useState<"classic" | "modern" | "compact" | "elegant" | "bold">("classic");
+  const [accent, setAccent] = useState("#2563eb");
+
   const goHome = () => { window.location.href = "/"; };
 
   const polish = async (text: string, fieldType: string, key: string, apply: (v: string) => void) => {
@@ -155,32 +159,73 @@ export default function Builder() {
 
     const contactLine = [email, phone, location, linkedin].filter(Boolean).join("  •  ");
 
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${name || "Resume"}</title>
-<style>@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap');
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Lato',Arial,sans-serif;font-size:10.5pt;line-height:1.5;color:#1a1a1a;padding:0.7in 0.75in;max-width:8.5in;margin:0 auto}
-h1{font-size:22pt;font-weight:700;letter-spacing:0.02em;margin-bottom:2px}
-.contact{font-size:9.5pt;color:#555;margin-bottom:14px}
-h2{font-size:10.5pt;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;border-bottom:1.5px solid #1a1a1a;padding-bottom:2px;margin-top:16px;margin-bottom:7px}
-.summary{margin-bottom:4px}
-.entry{margin-bottom:9px}
-.entry-head{display:flex;justify-content:space-between;align-items:baseline}
-.entry-title{font-weight:700;font-size:10.5pt}
-.entry-dates{font-size:9pt;color:#666}
-ul{margin:3px 0 0 16px}
-li{margin-bottom:2px}
-.detail{font-size:10pt;margin-top:1px}
-@media print{body{padding:0.5in 0.6in}}</style></head>
-<body>
-<h1>${name || "Your Name"}</h1>
-<div class="contact">${contactLine}</div>
+    // Template-specific CSS — all single-column + standard fonts = ATS-safe
+    const templates: Record<string, string> = {
+      classic: `
+        body{font-family:'Lato',Arial,sans-serif;font-size:10.5pt;line-height:1.5;color:#1a1a1a;padding:0.7in 0.75in;max-width:8.5in;margin:0 auto}
+        h1{font-size:22pt;font-weight:700;letter-spacing:0.02em;margin-bottom:2px;color:#1a1a1a}
+        .contact{font-size:9.5pt;color:#555;margin-bottom:14px}
+        h2{font-size:10.5pt;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;border-bottom:1.5px solid #1a1a1a;padding-bottom:2px;margin-top:16px;margin-bottom:7px;color:#1a1a1a}
+        .entry-title{font-weight:700;font-size:10.5pt}`,
+      modern: `
+        body{font-family:'Lato',Arial,sans-serif;font-size:10.5pt;line-height:1.5;color:#1f2937;padding:0.7in 0.75in;max-width:8.5in;margin:0 auto}
+        h1{font-size:24pt;font-weight:700;letter-spacing:0.01em;margin-bottom:2px;color:${accent}}
+        .contact{font-size:9.5pt;color:#6b7280;margin-bottom:14px}
+        h2{font-size:11pt;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid ${accent};padding-bottom:3px;margin-top:16px;margin-bottom:7px;color:${accent}}
+        .entry-title{font-weight:700;font-size:10.5pt;color:#111827}`,
+      compact: `
+        body{font-family:'Lato',Arial,sans-serif;font-size:9.5pt;line-height:1.35;color:#1a1a1a;padding:0.5in 0.6in;max-width:8.5in;margin:0 auto}
+        h1{font-size:18pt;font-weight:700;margin-bottom:1px}
+        .contact{font-size:8.5pt;color:#555;margin-bottom:9px}
+        h2{font-size:9.5pt;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid #999;padding-bottom:1px;margin-top:10px;margin-bottom:4px}
+        .entry{margin-bottom:6px!important}
+        .entry-title{font-weight:700;font-size:9.5pt}`,
+      elegant: `
+        body{font-family:Georgia,'Times New Roman',serif;font-size:10.5pt;line-height:1.55;color:#222;padding:0.75in 0.8in;max-width:8.5in;margin:0 auto}
+        h1{font-size:23pt;font-weight:700;letter-spacing:0.04em;margin-bottom:4px;text-align:center}
+        .contact{font-size:9.5pt;color:#666;margin-bottom:16px;text-align:center;border-bottom:1px solid #ccc;padding-bottom:10px}
+        h2{font-size:11pt;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-top:16px;margin-bottom:7px;color:#333}
+        .entry-title{font-weight:700;font-size:10.5pt}`,
+      bold: `
+        body{font-family:'Lato',Arial,sans-serif;font-size:10.5pt;line-height:1.5;color:#1a1a1a;padding:0 0 0.6in 0;max-width:8.5in;margin:0 auto}
+        .header-block{background:${accent};color:#fff;padding:0.5in 0.75in;margin-bottom:16px}
+        .header-block h1{font-size:26pt;font-weight:700;color:#fff;margin-bottom:3px}
+        .header-block .contact{font-size:9.5pt;color:#fff;opacity:0.9;margin-bottom:0}
+        .body-pad{padding:0 0.75in}
+        h1{font-size:26pt;font-weight:700}
+        .contact{font-size:9.5pt;color:#555;margin-bottom:14px}
+        h2{font-size:11pt;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:${accent};border-bottom:2px solid ${accent};padding-bottom:2px;margin-top:16px;margin-bottom:7px}
+        .entry-title{font-weight:700;font-size:10.5pt}`,
+    };
+
+    const sharedCss = `
+      *{margin:0;padding:0;box-sizing:border-box}
+      .summary{margin-bottom:4px}
+      .entry{margin-bottom:9px}
+      .entry-head{display:flex;justify-content:space-between;align-items:baseline}
+      .entry-dates{font-size:9pt;color:#666;white-space:nowrap;padding-left:10px}
+      ul{margin:3px 0 0 16px}
+      li{margin-bottom:2px}
+      .detail{font-size:10pt;margin-top:1px}
+      @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}`;
+
+    const sectionsHtml = `
 ${summary ? `<h2>Summary</h2><p class="summary">${summary}</p>` : ""}
 ${expHtml ? `<h2>Experience</h2>${expHtml}` : ""}
 ${eduHtml ? `<h2>Education</h2>${eduHtml}` : ""}
 ${skills ? `<h2>Skills</h2><p>${skills}</p>` : ""}
-${projHtml ? `<h2>Projects</h2>${projHtml}` : ""}
-<div style="margin-top:24px;border-top:1px solid #ddd;padding-top:8px;font-size:8pt;color:#999;text-align:center;">Built with ResumeLenz · resumelenz.com</div>
-</body></html>`;
+${projHtml ? `<h2>Projects</h2>${projHtml}` : ""}`;
+
+    const bodyInner = template === "bold"
+      ? `<div class="header-block"><h1>${name || "Your Name"}</h1><div class="contact">${contactLine}</div></div><div class="body-pad">${sectionsHtml}<div style="margin-top:24px;border-top:1px solid #ddd;padding-top:8px;font-size:8pt;color:#999;text-align:center;">Built with ResumeLenz · resumelenz.com</div></div>`
+      : `<h1>${name || "Your Name"}</h1><div class="contact">${contactLine}</div>${sectionsHtml}<div style="margin-top:24px;border-top:1px solid #ddd;padding-top:8px;font-size:8pt;color:#999;text-align:center;">Built with ResumeLenz · resumelenz.com</div>`;
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${name || "Resume"}</title>
+<style>@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap');
+${sharedCss}
+${templates[template]}
+</style></head>
+<body>${bodyInner}</body></html>`;
 
     const win = window.open("", "_blank");
     if (!win) { alert("Allow popups to download your PDF."); return; }
@@ -316,6 +361,40 @@ ${projHtml ? `<h2>Projects</h2>${projHtml}` : ""}
               <button onClick={addProject} className="w-full bg-stone-100 hover:bg-stone-200 text-stone-700 py-2 rounded-lg font-semibold text-sm transition-all">+ Add project</button>
             </div>
 
+            {/* Template picker */}
+            <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-sm">
+              <h2 className="font-bold text-stone-900 mb-1">🎨 Choose a Template</h2>
+              <p className="text-stone-500 text-xs mb-3">All templates are single-column and ATS-optimized — they look great to humans <em>and</em> pass the resume-scanning robots.</p>
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-4">
+                {([
+                  { id: "classic", label: "Classic" },
+                  { id: "modern", label: "Modern" },
+                  { id: "compact", label: "Compact" },
+                  { id: "elegant", label: "Elegant" },
+                  { id: "bold", label: "Bold" },
+                ] as const).map((t) => (
+                  <button key={t.id} onClick={() => setTemplate(t.id)}
+                    className={`py-2 rounded-lg text-xs font-bold border transition-all ${template === t.id ? "bg-yellow-400 border-yellow-400 text-stone-900" : "bg-stone-50 border-stone-300 text-stone-500 hover:border-yellow-300"}`}>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+              {(template === "modern" || template === "bold") && (
+                <div>
+                  <label className={labelCls}>Accent Color</label>
+                  <div className="flex gap-2 flex-wrap items-center">
+                    {["#2563eb", "#0d9488", "#7c3aed", "#be123c", "#b45309", "#15803d", "#1a1a1a"].map((c) => (
+                      <button key={c} onClick={() => setAccent(c)}
+                        className={`w-8 h-8 rounded-full border-2 transition-all ${accent === c ? "border-stone-800 scale-110" : "border-stone-200"}`}
+                        style={{ backgroundColor: c }} aria-label={`Accent ${c}`} />
+                    ))}
+                    <input type="color" value={accent} onChange={(e) => setAccent(e.target.value)}
+                      className="w-8 h-8 rounded cursor-pointer border border-stone-300 bg-white" aria-label="Custom color" />
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button onClick={downloadPDF} className="w-full bg-yellow-400 hover:bg-yellow-500 text-stone-900 py-4 rounded-xl font-black text-lg transition-all">
               📥 Download My Resume PDF
             </button>
@@ -324,10 +403,10 @@ ${projHtml ? `<h2>Projects</h2>${projHtml}` : ""}
 
           {/* ── LIVE PREVIEW SIDE ── */}
           <div className="lg:sticky lg:top-6 h-fit">
-            <p className="text-xs font-semibold text-stone-400 uppercase tracking-widest mb-2 text-center">Live Preview</p>
-            <div className="bg-white border border-stone-300 rounded-xl shadow-lg p-8 text-sm" style={{ minHeight: "600px" }}>
-              <div className="text-2xl font-black text-stone-900">{name || "Your Name"}</div>
-              <div className="text-xs text-stone-500 mb-4">
+            <p className="text-xs font-semibold text-stone-400 uppercase tracking-widest mb-2 text-center">Live Preview · {template} template</p>
+            <div className="bg-white border border-stone-300 rounded-xl shadow-lg p-8 text-sm" style={{ minHeight: "600px", fontFamily: template === "elegant" ? "Georgia, serif" : "inherit" }}>
+              <div className="text-2xl font-black" style={{ color: (template === "modern" || template === "bold") ? accent : "#1c1917", textAlign: template === "elegant" ? "center" : "left" }}>{name || "Your Name"}</div>
+              <div className="text-xs text-stone-500 mb-4" style={{ textAlign: template === "elegant" ? "center" : "left" }}>
                 {[email, phone, location, linkedin].filter(Boolean).join("  •  ") || "your contact info"}
               </div>
 

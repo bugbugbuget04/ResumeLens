@@ -1,5 +1,0 @@
-[33mf136eb1[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m expand industry dropdown with detailed sub-specializations
-[33m361359c[m add resume builder page with vercel routing
-[33m5d70112[m fix doodle z-index layering so they are visible
-[33m926b1c7[m deepen doodle amber, add muted blue accents
-[33m6f9a414[m add fundamental mismatch warning and reality check, fix summary scoring

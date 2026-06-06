@@ -71,8 +71,13 @@ export default function Builder() {
   const [polishing, setPolishing] = useState<string>("");
 
   // Template + accent color
-  const [template, setTemplate] = useState<"classic" | "corporate" | "tech" | "minimal" | "executive" | "creative" | "boldheader" | "sectioned" | "twotone">("classic");
+  const [template, setTemplate] = useState<"classic" | "corporate" | "tech" | "minimal" | "executive" | "creative" | "boldheader" | "sectioned" | "twotone" | "modern" | "refined" | "compact">("classic");
   const [accent, setAccent] = useState("#2563eb");
+
+  // Bullet suggestions
+  const [suggestFor, setSuggestFor] = useState<number | null>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestLoading, setSuggestLoading] = useState(false);
 
   const goHome = () => { window.location.href = "/"; };
 
@@ -84,6 +89,28 @@ export default function Builder() {
       if (res.data?.polished) apply(res.data.polished);
     } catch {}
     setPolishing("");
+  };
+
+  const fetchSuggestions = async (expIndex: number) => {
+    const title = experiences[expIndex].title.trim();
+    if (!title) { alert("Enter a job title first, then I'll suggest bullet points for it."); return; }
+    setSuggestFor(expIndex);
+    setSuggestLoading(true);
+    setSuggestions([]);
+    try {
+      const res = await axios.post(`${API}/suggest-bullets`, { job_title: title });
+      if (res.data?.bullets) setSuggestions(res.data.bullets);
+    } catch {}
+    setSuggestLoading(false);
+  };
+
+  const addSuggestionToExp = (expIndex: number, bullet: string) => {
+    const copy = [...experiences];
+    // fill the first empty bullet, or append a new one
+    const emptyIdx = copy[expIndex].bullets.findIndex(b => !b.trim());
+    if (emptyIdx >= 0) copy[expIndex].bullets[emptyIdx] = bullet;
+    else copy[expIndex].bullets.push(bullet);
+    setExperiences(copy);
   };
 
   // Experience handlers
@@ -231,6 +258,26 @@ export default function Builder() {
         .contact{font-size:9.5pt;color:#555;margin-bottom:14px}
         h2{font-size:10.5pt;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:${accent};margin-top:15px;margin-bottom:6px;border-bottom:1.5px solid ${accent}55;padding-bottom:2px}
         .entry-title{font-weight:700;font-size:10.5pt}`,
+      // ── extra ATS-safe ──
+      modern: `
+        body{font-family:'Lato',Arial,sans-serif;font-size:10.5pt;line-height:1.5;color:#1f2937;padding:0.7in 0.75in;max-width:8.5in;margin:0 auto}
+        h1{font-size:24pt;font-weight:700;letter-spacing:0.01em;margin-bottom:2px;color:${accent}}
+        .contact{font-size:9.5pt;color:#6b7280;margin-bottom:14px}
+        h2{font-size:11pt;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid ${accent};padding-bottom:3px;margin-top:16px;margin-bottom:7px;color:${accent}}
+        .entry-title{font-weight:700;font-size:10.5pt;color:#111827}`,
+      refined: `
+        body{font-family:Georgia,'Times New Roman',serif;font-size:10.5pt;line-height:1.5;color:#2a2a2a;padding:0.75in 0.85in;max-width:8.5in;margin:0 auto}
+        h1{font-size:22pt;font-weight:700;letter-spacing:0.02em;margin-bottom:3px;color:${accent}}
+        .contact{font-size:9.5pt;color:#777;margin-bottom:15px;font-style:italic}
+        h2{font-size:10.5pt;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;margin-top:16px;margin-bottom:6px;color:${accent};border-bottom:1px solid #ddd;padding-bottom:2px}
+        .entry-title{font-weight:700;font-size:10.5pt}`,
+      compact: `
+        body{font-family:'Lato',Arial,sans-serif;font-size:9.5pt;line-height:1.35;color:#1a1a1a;padding:0.5in 0.6in;max-width:8.5in;margin:0 auto}
+        h1{font-size:18pt;font-weight:700;margin-bottom:1px}
+        .contact{font-size:8.5pt;color:#555;margin-bottom:9px}
+        h2{font-size:9.5pt;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid #999;padding-bottom:1px;margin-top:10px;margin-bottom:4px}
+        .entry{margin-bottom:6px!important}
+        .entry-title{font-weight:700;font-size:9.5pt}`,
     };
 
     // Which templates use the header-block wrapper layout
@@ -338,7 +385,37 @@ ${templates[template]}
                     <input className={inputCls} value={exp.company} onChange={e => updateExp(i, "company", e.target.value)} placeholder="Company" />
                   </div>
                   <input className={inputCls + " mb-2"} value={exp.dates} onChange={e => updateExp(i, "dates", e.target.value)} placeholder="Jan 2022 – Present" />
-                  <label className={labelCls}>What you did</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className={labelCls + " mb-0"}>What you did</label>
+                    <button onClick={() => fetchSuggestions(i)}
+                      className="text-xs font-bold px-2 py-1 rounded-md bg-yellow-100 border border-yellow-300 text-yellow-700 hover:bg-yellow-200 transition-all">
+                      💡 Suggest bullets
+                    </button>
+                  </div>
+                  {/* Suggestions panel */}
+                  {suggestFor === i && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
+                      {suggestLoading ? (
+                        <div className="flex items-center gap-2 text-yellow-700 text-sm"><Spinner color="text-yellow-600" /> Generating ideas for "{exp.title}"…</div>
+                      ) : suggestions.length > 0 ? (
+                        <>
+                          <p className="text-xs font-semibold text-stone-600 mb-2">Tap any to add it (you can edit after):</p>
+                          <div className="space-y-1.5">
+                            {suggestions.map((s, si) => (
+                              <button key={si} onClick={() => addSuggestionToExp(i, s)}
+                                className="w-full text-left text-sm text-stone-700 bg-white border border-stone-200 rounded-lg px-3 py-2 hover:border-yellow-400 hover:bg-yellow-50 transition-all">
+                                + {s}
+                              </button>
+                            ))}
+                          </div>
+                          <button onClick={() => { setSuggestFor(null); setSuggestions([]); }}
+                            className="text-xs text-stone-400 hover:text-stone-600 underline mt-2">Close suggestions</button>
+                        </>
+                      ) : (
+                        <p className="text-sm text-stone-500">No suggestions returned — try again.</p>
+                      )}
+                    </div>
+                  )}
                   {exp.bullets.map((b, bi) => (
                     <div key={bi} className="flex gap-2 items-start mb-2">
                       <textarea className={inputCls} rows={2} value={b} onChange={e => updateExpBullet(i, bi, e.target.value)} placeholder="Describe an achievement..." />
@@ -416,6 +493,9 @@ ${templates[template]}
                   { id: "tech", label: "Tech", tip: "Software, data, IT, engineering" },
                   { id: "minimal", label: "Minimal", tip: "Clean & airy — any modern role" },
                   { id: "executive", label: "Executive", tip: "Senior & leadership roles" },
+                  { id: "modern", label: "Modern", tip: "Colored headers — versatile" },
+                  { id: "refined", label: "Refined", tip: "Serif + color — polished" },
+                  { id: "compact", label: "Compact", tip: "Fits more — for long careers" },
                 ] as const).map((t) => (
                   <button key={t.id} onClick={() => setTemplate(t.id)}
                     className={`text-left p-2.5 rounded-lg border transition-all ${template === t.id ? "bg-yellow-50 border-yellow-400" : "bg-stone-50 border-stone-200 hover:border-yellow-300"}`}>
@@ -446,7 +526,7 @@ ${templates[template]}
               </div>
 
               {/* Accent color — for templates that use it */}
-              {["tech", "creative", "boldheader", "sectioned", "twotone"].includes(template) && (
+              {["tech", "creative", "boldheader", "sectioned", "twotone", "modern", "refined"].includes(template) && (
                 <div className="border-t border-stone-100 pt-3">
                   <label className={labelCls}>Accent Color</label>
                   <div className="flex gap-2 flex-wrap items-center">
@@ -471,8 +551,8 @@ ${templates[template]}
           {/* ── LIVE PREVIEW SIDE ── */}
           <div className="lg:sticky lg:top-6 h-fit">
             <p className="text-xs font-semibold text-stone-400 uppercase tracking-widest mb-2 text-center">Live Preview · {template} template</p>
-            <div className="bg-white border border-stone-300 rounded-xl shadow-lg p-8 text-sm" style={{ minHeight: "600px", fontFamily: (template === "executive" || template === "corporate") ? "Georgia, serif" : "inherit" }}>
-              <div className="text-2xl font-black" style={{ color: ["tech", "creative", "boldheader", "sectioned", "twotone"].includes(template) ? accent : "#1c1917", textAlign: (template === "executive" || template === "boldheader") ? "center" : "left", fontFamily: template === "tech" ? "monospace" : "inherit" }}>{name || "Your Name"}</div>
+            <div className="bg-white border border-stone-300 rounded-xl shadow-lg p-8 text-sm" style={{ minHeight: "600px", fontFamily: (template === "executive" || template === "corporate" || template === "refined") ? "Georgia, serif" : "inherit" }}>
+              <div className="text-2xl font-black" style={{ color: ["tech", "creative", "boldheader", "sectioned", "twotone", "modern", "refined"].includes(template) ? accent : "#1c1917", textAlign: (template === "executive" || template === "boldheader") ? "center" : "left", fontFamily: template === "tech" ? "monospace" : "inherit" }}>{name || "Your Name"}</div>
               <div className="text-xs text-stone-500 mb-4" style={{ textAlign: (template === "executive" || template === "boldheader") ? "center" : "left" }}>
                 {[email, phone, location, linkedin].filter(Boolean).join("  •  ") || "your contact info"}
               </div>

@@ -427,6 +427,41 @@ Original: {text}"""
         return {"polished": data.get("text", "")}
 
 
+@app.post("/suggest-bullets")
+async def suggest_bullets(data: dict):
+    """Generate ready-to-use resume bullet suggestions for a given job title."""
+    try:
+        job_title = data.get("job_title", "").strip()
+        if not job_title:
+            return {"bullets": []}
+
+        prompt = f"""You are an expert resume writer. Generate 5 strong, ready-to-use resume bullet points for the job title: "{job_title}".
+
+RULES:
+- Each bullet starts with a powerful action verb
+- Include realistic, measurable impact where natural (percentages, numbers, scope) but keep them generic enough to apply to many people
+- One line each, no period at the start, professional tone
+- Do NOT number them or add bullet symbols
+
+Return ONLY a JSON array of 5 strings, no markdown, no explanation. Example format:
+["Managed a team of 5 to deliver X", "Increased Y by 30% through Z", ...]"""
+
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.6,
+            max_tokens=600,
+        )
+        raw = strip_json(response.choices[0].message.content)
+        bullets = json.loads(raw)
+        if isinstance(bullets, list):
+            return {"bullets": [str(b) for b in bullets][:5]}
+        return {"bullets": []}
+    except Exception as e:
+        print("Suggest bullets error:", str(e))
+        return {"bullets": []}
+
+
 @app.post("/feedback")
 async def save_feedback(data: dict):
     rating = data.get("rating", "")

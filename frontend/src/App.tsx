@@ -769,6 +769,45 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
               </div>
             )}
 
+            {/* Recruiter First Impression */}
+            {result.recruiter_first_impression && (
+              <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm rl-card">
+                <h2 className="font-bold text-stone-900 text-base mb-2">👀 Recruiter's First 6 Seconds</h2>
+                <p className="text-stone-500 text-xs mb-4">What a recruiter notices when they first glance at your resume — before reading a word in detail.</p>
+                <div className="bg-stone-50 border-l-4 border-yellow-400 rounded-r-xl px-4 py-3">
+                  <p className="text-stone-700 text-sm whitespace-pre-line leading-relaxed">{result.recruiter_first_impression}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Requirement Match Table */}
+            {result.requirement_match && result.requirement_match.length > 0 && (
+              <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm rl-card">
+                <h2 className="font-bold text-stone-900 text-base mb-2">🎯 Requirement Match</h2>
+                <p className="text-stone-500 text-xs mb-4">How your resume stacks up against what this role actually requires.</p>
+                <div className="space-y-1.5">
+                  {result.requirement_match.map((r: any, i: number) => (
+                    <div key={i} className={`flex items-center justify-between rounded-lg px-3 py-2 ${r.found ? "bg-emerald-50 border border-emerald-200" : "bg-red-50 border border-red-200"}`}>
+                      <span className="text-stone-700 text-sm font-medium">{r.requirement}</span>
+                      <span className={`text-sm font-bold shrink-0 ml-3 ${r.found ? "text-emerald-600" : "text-red-500"}`}>{r.found ? "✓ Found" : "✗ Missing"}</span>
+                    </div>
+                  ))}
+                </div>
+                {(() => {
+                  const total = result.requirement_match.length;
+                  const found = result.requirement_match.filter((r: any) => r.found).length;
+                  const pct = Math.round((found / total) * 100);
+                  return (
+                    <div className="mt-4 text-center bg-stone-50 rounded-xl py-3">
+                      <span className="text-stone-500 text-xs uppercase tracking-wide">Match Score</span>
+                      <div className={`text-2xl font-black ${pct >= 70 ? "text-emerald-600" : pct >= 40 ? "text-yellow-500" : "text-red-500"}`}>{pct}%</div>
+                      <span className="text-stone-400 text-xs">{found} of {total} requirements met</span>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
             {/* Strengths */}
             <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm rl-card">
               <h2 className="font-bold text-stone-900 text-base mb-4">💪 Top Strengths</h2>
@@ -860,20 +899,66 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
               </div>
             )}
 
-            {/* Bullet Rewrite */}
-            {premium && result.bullet_point_analysis && (
+            {/* Bullet Rewrites — 1 free, rest premium */}
+            {(result.bullet_rewrites?.length > 0 || result.bullet_point_analysis) && (
               <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm rl-card">
-                <h2 className="font-bold text-stone-900 text-base mb-4">✏️ Bullet Point Rewrite</h2>
-                <p className="text-stone-500 text-sm mb-4">{result.bullet_point_analysis.feedback}</p>
-                <div className="space-y-3">
-                  <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-                    <p className="text-xs font-bold text-red-500 mb-2">✗ WEAK</p>
-                    <p className="text-stone-600 text-sm">{result.bullet_point_analysis.weak_bullet}</p>
+                <h2 className="font-bold text-stone-900 text-base mb-2">✏️ Bullet Point Rewrites</h2>
+                <p className="text-stone-500 text-sm mb-4">We took real bullets from your resume and made them stronger.</p>
+                <div className="space-y-4">
+                  {(result.bullet_rewrites && result.bullet_rewrites.length > 0
+                    ? result.bullet_rewrites
+                    : [{ original: result.bullet_point_analysis?.weak_bullet, rewrite: result.bullet_point_analysis?.improved_bullet }]
+                  ).map((b: any, i: number) => {
+                    const locked = !premium && i > 0;
+                    return (
+                      <div key={i} className="space-y-2">
+                        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                          <p className="text-xs font-bold text-red-500 mb-2">✗ BEFORE</p>
+                          <p className="text-stone-600 text-sm">{b.original}</p>
+                        </div>
+                        <div className={`bg-emerald-50 border border-emerald-200 rounded-xl p-4 ${locked ? "relative overflow-hidden" : ""}`}>
+                          <p className="text-xs font-bold text-emerald-600 mb-2">✓ AFTER</p>
+                          <p className={`text-stone-700 text-sm ${locked ? "blur-sm select-none" : ""}`}>{locked ? "Unlock the full report to see this improved bullet point with metrics and impact baked in." : b.rewrite}</p>
+                          {locked && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <span className="bg-stone-900 text-white text-xs font-bold px-3 py-1.5 rounded-full">🔒 Premium</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {!premium && result.bullet_rewrites?.length > 1 && (
+                  <p className="text-center text-stone-400 text-xs mt-4">+ {result.bullet_rewrites.length - 1} more rewrites in the full report</p>
+                )}
+              </div>
+            )}
+
+            {/* Competitive Gap Analysis */}
+            {result.competitive_gap && result.competitive_gap.candidates_have?.length > 0 && (
+              <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm rl-card">
+                <h2 className="font-bold text-stone-900 text-base mb-2">📊 Competitive Gap</h2>
+                <p className="text-stone-500 text-xs mb-4">{result.competitive_gap.intro}</p>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div className="bg-stone-50 border border-stone-200 rounded-xl p-4">
+                    <p className="text-xs font-bold text-stone-500 uppercase tracking-wide mb-2">Top candidates have</p>
+                    <div className="space-y-1.5">
+                      {result.competitive_gap.candidates_have.map((c: string, i: number) => (
+                        <div key={i} className="flex items-start gap-2 text-sm text-stone-700"><span className="text-stone-400 mt-0.5">•</span>{c}</div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
-                    <p className="text-xs font-bold text-emerald-600 mb-2">✓ IMPROVED</p>
-                    <p className="text-stone-700 text-sm">{result.bullet_point_analysis.improved_bullet}</p>
-                  </div>
+                  {result.competitive_gap.you_are_missing?.length > 0 && (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                      <p className="text-xs font-bold text-red-500 uppercase tracking-wide mb-2">You're missing</p>
+                      <div className="space-y-1.5">
+                        {result.competitive_gap.you_are_missing.map((c: string, i: number) => (
+                          <div key={i} className="flex items-start gap-2 text-sm text-stone-700"><span className="text-red-400 mt-0.5">✗</span>{c}</div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

@@ -63,7 +63,12 @@ async def analyze_resume(
     jd_context = f"\n\nJOB DESCRIPTION TO MATCH AGAINST:\n{job_description}" if job_description else ""
 
     prompt = f"""
-You are a brutally honest but constructive US resume coach with 15 years of experience placing candidates at Fortune 500 companies. You give hyper-specific, personalized feedback — never generic advice.
+You are simulating THREE expert reviewers analyzing this resume together:
+1. An ATS (Applicant Tracking System) scanner that parses and keyword-matches
+2. A technical recruiter who screens resumes in 6 seconds
+3. A hiring manager deciding whether to interview
+
+Be BRUTALLY HONEST. Avoid generic resume advice that users have heard 500 times. Every observation must reference ACTUAL content from this specific resume — real job titles, real company names, real bullet points, real skills. If you find yourself writing advice that could apply to any resume, delete it and be specific instead.
 
 {industry_context}
 {company_context}
@@ -90,6 +95,7 @@ Return ONLY a JSON object with this exact structure, no markdown, no backticks:
     "mismatch_warning": "<if fundamental_mismatch is true: a direct, honest 1-2 sentence statement that they should not apply to this role and why. If false: empty string>",
     "mismatch_requirements": ["<if mismatch: a core qualification they would NEED to be eligible, e.g. 'A Bachelor of Science in Nursing (BSN)'>", "<another required qualification>", "<another>"],
     "summary": "<3 sentence summary that references their actual job titles, companies, and specific gaps for their target industry>",
+    "recruiter_first_impression": "<Write what a recruiter notices in the first 6 seconds of scanning THIS resume. Reference actual things visible — their most recent title, a standout project, or a glaring gap. Format as 2-4 short punchy observations, each starting with the candidate's reality. Be honest about what jumps out, good AND bad.>",
     "section_scores": {{
         "work_experience": <number 0-100>,
         "skills": <number 0-100>,
@@ -101,6 +107,9 @@ Return ONLY a JSON object with this exact structure, no markdown, no backticks:
     "ats_feedback": "<specific ATS feedback referencing actual resume content and target industry keywords>",
     "job_match_score": {"<number 0-100>" if job_description else "null"},
     "job_match_feedback": {"<specific feedback comparing actual resume bullets to job description requirements>" if job_description else "null"},
+    "requirement_match": [
+        {"{"} "requirement": "<a specific requirement or skill from the job description (or, if no JD, a key requirement for their target role/industry)>", "found": <true or false — is this genuinely evidenced in their resume?>, "evidence": "<if found: briefly cite where in their resume; if not found: empty string>" {"}"}
+    ],
     "keyword_analysis": {{
         "strong_keywords": ["<actual keyword found in their resume>", "<actual keyword>", "<actual keyword>"],
         "missing_keywords": ["<important keyword missing for their target role/industry>", "<missing keyword>", "<missing keyword>"]
@@ -111,6 +120,11 @@ Return ONLY a JSON object with this exact structure, no markdown, no backticks:
         "weak_bullet": "<copy an exact weak bullet from their resume word for word>",
         "improved_bullet": "<rewrite that exact bullet with specific metrics, impact, and action verbs>"
     }},
+    "bullet_rewrites": [
+        {"{"} "original": "<an exact bullet copied word-for-word from their resume>", "rewrite": "<a stronger version of that exact bullet — add action verb, specific impact, and a realistic metric>" {"}"},
+        {"{"} "original": "<another exact bullet from their resume>", "rewrite": "<stronger version>" {"}"},
+        {"{"} "original": "<a third exact bullet from their resume>", "rewrite": "<stronger version>" {"}"}
+    ],
     "top_strengths": [
         "<quote or directly reference an actual job title, company, bullet point, or skill LITERALLY found in the resume>",
         "<another strength pulled directly from actual resume content>",
@@ -136,12 +150,23 @@ Return ONLY a JSON object with this exact structure, no markdown, no backticks:
             "fix": "<exact rewrite or precise action>"
         }}
     ],
+    "competitive_gap": {{
+        "intro": "<one honest sentence: what the strongest candidates for their target role/industry typically have>",
+        "candidates_have": ["<a credential, skill, or experience top candidates in this field usually have>", "<another>", "<another>"],
+        "you_are_missing": ["<which of those THIS candidate lacks, based on their actual resume>", "<another they're missing, or empty if they have most>"]
+    }},
     "interview_probability": "Low",
     "target_roles": ["<role that matches their actual experience level and background>", "<role>", "<role>"]
 }}
 
-IMPORTANT: critical_improvements MUST be an array with exactly 3 objects.
+IMPORTANT RULES FOR THE NEW FIELDS:
+- "requirement_match" MUST be an array of 5-8 items. If a job description is provided, pull requirements directly from it. If no job description, use the most important requirements for their stated target role/industry. Be honest about "found" — only mark true if there is real evidence in the resume.
+- "bullet_rewrites" MUST contain exactly 3 items, each using a REAL bullet copied exactly from their resume. If the resume has fewer than 3 bullets, rewrite what exists and fill remaining with the weakest sentences present.
+- "recruiter_first_impression" must reference actual specific content, not generic phrases.
+- "competitive_gap" must be grounded in their real background and realistic for their target field.
+
 interview_probability MUST be exactly one of: "Low", "Medium", or "High".
+critical_improvements MUST be an array with exactly 3 objects.
 ats_score MUST be a number between 0 and 100.
 Only return the JSON. No markdown, no backticks, no explanation.
 

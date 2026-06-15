@@ -84,7 +84,7 @@ export default function Builder() {
   const [polishing, setPolishing] = useState<string>("");
 
   // Template + accent color
-  const [template, setTemplate] = useState<"classic" | "corporate" | "tech" | "minimal" | "executive" | "creative" | "boldheader" | "sectioned" | "twotone" | "modern" | "refined" | "compact">("classic");
+  const [template, setTemplate] = useState<"classic" | "corporate" | "tech" | "minimal" | "executive" | "creative" | "boldheader" | "sectioned" | "twotone" | "modern" | "refined" | "compact" | "tailored" | "sidebarlook">("classic");
   const [accent, setAccent] = useState("#2563eb");
 
   // Bullet suggestions
@@ -325,6 +325,23 @@ export default function Builder() {
         h2{font-size:9.5pt;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid #999;padding-bottom:1px;margin-top:10px;margin-bottom:4px}
         .entry{margin-bottom:6px!important}
         .entry-title{font-weight:700;font-size:9.5pt}`,
+      tailored: `
+        body{font-family:Georgia,'Times New Roman',serif;font-size:10.5pt;line-height:1.5;color:#222;padding:0.7in 0.85in;max-width:8.5in;margin:0 auto}
+        h1{font-size:26pt;font-weight:400;letter-spacing:0.06em;margin-bottom:6px;color:#1a1a1a;text-align:center;font-variant:small-caps}
+        .contact{font-size:9.5pt;color:#555;margin-bottom:4px;text-align:center}
+        h2{font-size:10pt;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:${accent};margin-top:18px;margin-bottom:8px;border-top:1.5px solid ${accent};border-bottom:1.5px solid ${accent};padding:4px 0;text-align:center}
+        .entry-title{font-weight:700;font-size:10.5pt}
+        .entry-dates{font-style:italic;color:#777}`,
+      sidebarlook: `
+        body{font-family:'Lato',Arial,sans-serif;font-size:10.5pt;line-height:1.5;color:#1a1a1a;padding:0.7in 0.75in;max-width:8.5in;margin:0 auto}
+        h1{font-size:23pt;font-weight:800;margin-bottom:2px;color:#111}
+        .contact{font-size:9.5pt;color:#555;margin-bottom:16px}
+        /* fake sidebar: section title sits left, content indented — but it's all single column so ATS reads top-to-bottom */
+        h2{font-size:9.5pt;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:${accent};margin-top:16px;margin-bottom:6px;padding-left:0;border-left:4px solid ${accent};padding-left:8px}
+        .entry{padding-left:8px;margin-bottom:9px}
+        .entry-title{font-weight:700;font-size:10.5pt}
+        .entry-dates{font-size:9pt;color:#888;font-weight:600}
+        p,ul{padding-left:8px}`,
     };
 
     // Which templates use the header-block wrapper layout
@@ -642,6 +659,8 @@ ${templates[template]}
                   { id: "modern", label: "Modern", tip: "Colored headers — versatile" },
                   { id: "refined", label: "Refined", tip: "Serif + color — polished" },
                   { id: "compact", label: "Compact", tip: "Fits more — for long careers" },
+                  { id: "tailored", label: "Tailored", tip: "Elegant small-caps — premium feel" },
+                  { id: "sidebarlook", label: "Sidebar Style", tip: "Looks two-column, safely single" },
                 ] as const).map((t) => (
                   <button key={t.id} onClick={() => setTemplate(t.id)}
                     className={`text-left p-2.5 rounded-lg border transition-all ${template === t.id ? "bg-yellow-50 border-yellow-400" : "bg-stone-50 border-stone-200 hover:border-yellow-300"}`}>
@@ -672,7 +691,7 @@ ${templates[template]}
               </div>
 
               {/* Accent color — for templates that use it */}
-              {["tech", "creative", "boldheader", "sectioned", "twotone", "modern", "refined"].includes(template) && (
+              {["tech", "creative", "boldheader", "sectioned", "twotone", "modern", "refined", "tailored", "sidebarlook"].includes(template) && (
                 <div className="border-t border-stone-100 pt-3">
                   <label className={labelCls}>Accent Color</label>
                   <div className="flex gap-2 flex-wrap items-center">
@@ -697,9 +716,9 @@ ${templates[template]}
           {/* ── LIVE PREVIEW SIDE ── */}
           <div className="lg:sticky lg:top-6 h-fit">
             <p className="text-xs font-semibold text-stone-400 uppercase tracking-widest mb-2 text-center">Live Preview · {template} template</p>
-            <div className="bg-white border border-stone-300 rounded-xl shadow-lg p-8 text-sm" style={{ minHeight: "600px", fontFamily: (template === "executive" || template === "corporate" || template === "refined") ? "Georgia, serif" : "inherit" }}>
-              <div className="text-2xl font-black" style={{ color: ["tech", "creative", "boldheader", "sectioned", "twotone", "modern", "refined"].includes(template) ? accent : "#1c1917", textAlign: (template === "executive" || template === "boldheader") ? "center" : "left", fontFamily: template === "tech" ? "monospace" : "inherit" }}>{name || "Your Name"}</div>
-              <div className="text-xs text-stone-500 mb-4" style={{ textAlign: (template === "executive" || template === "boldheader") ? "center" : "left" }}>
+            <div className="bg-white border border-stone-300 rounded-xl shadow-lg p-8 text-sm" style={{ minHeight: "600px", fontFamily: (template === "executive" || template === "corporate" || template === "refined" || template === "tailored") ? "Georgia, serif" : "inherit" }}>
+              <div className="text-2xl font-black" style={{ color: ["tech", "creative", "boldheader", "sectioned", "twotone", "modern", "refined", "sidebarlook"].includes(template) ? accent : "#1c1917", textAlign: (template === "executive" || template === "boldheader" || template === "tailored") ? "center" : "left", fontFamily: template === "tech" ? "monospace" : "inherit" }}>{name || "Your Name"}</div>
+              <div className="text-xs text-stone-500 mb-4" style={{ textAlign: (template === "executive" || template === "boldheader" || template === "tailored") ? "center" : "left" }}>
                 {[email, phone, location, linkedin].filter(Boolean).join("  •  ") || "your contact info"}
               </div>
 

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import type { RefObject } from "react";
 import axios from "axios";
 import Builder from "./Builder";
+import Legal from "./Legal";
 
 const CHECKOUT_URL = "https://resumelens.lemonsqueezy.com/checkout/buy/aa1a1cb6-75f1-4536-b9c4-7c5553d65dbd";
 const API = "https://resumelens-cm11.onrender.com";
@@ -152,6 +153,9 @@ function Doodles() {
 export default function App() {
   const [isBuilderPath] = useState(
     () => typeof window !== "undefined" && window.location.pathname.replace(/\/$/, "") === "/build"
+  );
+  const [isLegalPath] = useState(
+    () => typeof window !== "undefined" && ["/legal", "/terms", "/privacy"].includes(window.location.pathname.replace(/\/$/, ""))
   );
 
   const [file, setFile] = useState<File | null>(null);
@@ -422,6 +426,7 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
 
   // Render the Resume Builder page at /build (after all hooks are declared)
   if (isBuilderPath) return <Builder />;
+  if (isLegalPath) return <Legal />;
 
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900 relative">
@@ -1345,12 +1350,16 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
       )}
 
       <footer className="relative z-10 border-t border-stone-200 bg-white py-8 mt-16">
-        <div className="max-w-3xl mx-auto px-4 flex justify-between items-center">
+        <div className="max-w-3xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-3">
           <button onClick={handleGoHome} className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer">
             <ResumeLensLogo size={24} />
             <span className="text-stone-500 text-sm">ResumeLenz</span>
           </button>
-          <p className="text-stone-400 text-xs">© 2026 ResumeLenz. All rights reserved.</p>
+          <div className="flex items-center gap-4">
+            <a href="/terms" className="text-stone-400 hover:text-stone-700 text-xs">Terms</a>
+            <a href="/privacy" className="text-stone-400 hover:text-stone-700 text-xs">Privacy</a>
+            <p className="text-stone-400 text-xs">© 2026 ResumeLenz. All rights reserved.</p>
+          </div>
         </div>
       </footer>
 

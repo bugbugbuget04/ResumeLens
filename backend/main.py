@@ -56,6 +56,21 @@ async def analyze_resume(
     for page in pdf.pages:
         text += page.extract_text() or ""
 
+    # --- Input quality detection: thin input = generic output, so flag it honestly ---
+    word_count = len(text.split())
+    input_tips = []
+    if word_count < 150:
+        input_tips.append("Your resume is quite short — adding more detail about your experience, achievements, and skills will produce a much sharper analysis.")
+    if not job_description:
+        input_tips.append("Paste the job description you're targeting for a precise requirement-by-requirement match.")
+    if not target_role:
+        input_tips.append("Add your target role so feedback can be tailored to what that job needs.")
+    input_quality = "high" if word_count >= 250 and job_description else ("low" if word_count < 150 or (not job_description and not target_role) else "medium")
+
+    quality_note = ""
+    if input_quality != "high":
+        quality_note = "\n\nNOTE ON INPUT: The provided resume and/or job details are limited, so some feedback may be necessarily broad. Where you lack specific information from the resume, be honest that you cannot assess it rather than inventing generic filler — and note what the candidate could add for a deeper analysis."
+
     industry_context = f"The candidate is targeting the {industry} industry. Tailor ALL feedback specifically for what {industry} employers and ATS systems look for." if industry else ""
     company_context = f"The target company is {target_company}. Research what {target_company} specifically looks for in candidates — their culture, known ATS keywords, hiring bar, and role expectations — and reference this directly in your feedback." if target_company else ""
     role_context = f"The candidate is specifically targeting the role of '{target_role}'. Evaluate the resume against what this exact role requires." if target_role else ""
@@ -74,6 +89,7 @@ Be BRUTALLY HONEST. Avoid generic resume advice that users have heard 500 times.
 {company_context}
 {role_context}
 {level_context}
+{quality_note}
 
 STRICT RULES YOU MUST FOLLOW:
 - Every piece of feedback MUST reference specific content from the actual resume (real job titles, real company names, real bullet points, real skills listed)
@@ -182,7 +198,11 @@ Resume:
     )
     raw = strip_json(response.choices[0].message.content)
     print("ANALYZE RESPONSE:", raw[:200])
-    return json.loads(raw)
+    result = json.loads(raw)
+    # attach input-quality signal so the frontend can guide the user
+    result["input_quality"] = input_quality
+    result["input_tips"] = input_tips
+    return result
 
 
 @app.post("/rewrite")
@@ -222,7 +242,7 @@ Based on the prior analysis:
     jd_context = f"\n\nJOB DESCRIPTION TO OPTIMIZE FOR:\n{job_description}" if job_description else ""
 
     prompt = f"""
-You are an expert US resume writer with 15 years of experience. Rewrite the resume below into a polished, ATS-optimized document.
+You are a top-tier US resume writer who has helped candidates land roles at Fortune 500 companies and top startups. Rewrite the resume below into a powerful, ATS-optimized document that gets interviews.
 
 {industry_context}
 {company_context}
@@ -230,19 +250,34 @@ You are an expert US resume writer with 15 years of experience. Rewrite the resu
 {level_context}
 {analysis_context}
 
+YOUR MISSION: Transform every weak, duty-based line into a strong, achievement-driven bullet. The rewritten resume should be dramatically better than the original — not a light edit.
+
+THE BULLET FORMULA: [Powerful action verb] + [specific accomplishment] + [quantified impact].
+
 RULES:
-- Keep all real experience, companies, job titles, dates, and education — never fabricate
-- Rewrite every bullet with a strong action verb and impact/metrics where inferable
-- Add missing keywords naturally
+- Keep ALL real experience, companies, job titles, dates, and education exactly as given — NEVER fabricate jobs, degrees, or employers
+- PRESERVE any real numbers and details already in the resume. Where the original lacks numbers, add a BRACKETED PLACEHOLDER like "[X]%", "[X]+", or "[$X]K" instead of inventing a fake specific number — this signals the candidate must insert their real figure and keeps them honest
+- Start bullets with strong, varied action verbs (Spearheaded, Engineered, Drove, Optimized, Launched, Negotiated). Never reuse the same verb or start with "Responsible for", "Helped with", or "Worked on"
+- Weave in missing keywords naturally so it passes ATS for the target role/industry
+- Write a sharp 2-3 line professional summary at the top tailored to the target role
 - Clear section headers: SUMMARY, EXPERIENCE, EDUCATION, SKILLS
-- Remove "responsible for", "helped with", "worked on"
-- 1 page content max (2 pages for 10+ years experience)
+- Keep it to 1 page of content (2 pages only for 10+ years of experience)
+
+TRANSFORMATION EXAMPLES (this is the quality bar — note bracketed placeholders for missing numbers):
+- Before: "Responsible for managing social media accounts"
+  After: "Grew company Instagram following by [X]% in [X] months by launching a content calendar and daily engagement strategy"
+- Before: "Helped customers with their orders"
+  After: "Resolved [X]+ daily customer inquiries with a [X]% satisfaction rating, driving repeat purchases"
+- Before: "Worked on a machine learning project"
+  After: "Built and deployed an ML prediction model that improved forecast accuracy by [X]% using Python and scikit-learn"
+
+Every single bullet in your output should meet this standard. If a bullet doesn't have an action verb and a result, rewrite it until it does.
 
 Return ONLY JSON, no markdown:
 
 {{
     "rewritten_resume": "<full resume as plain text with \\n for line breaks>",
-    "changes_made": ["<change 1>", "<change 2>", "<change 3>", "<change 4>"],
+    "changes_made": ["<specific change referencing actual content>", "<change 2>", "<change 3>", "<change 4>"],
     "keywords_added": ["<kw1>", "<kw2>", "<kw3>", "<kw4>", "<kw5>"]
 }}
 
@@ -254,7 +289,7 @@ ORIGINAL RESUME:
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.4,
+        temperature=0.6,
         max_tokens=4000,
     )
     raw = strip_json(response.choices[0].message.content)
@@ -428,7 +463,7 @@ async def polish_text(data: dict):
         elif field_type == "skill":
             instruction = f"Clean this up into a concise, comma-separated list of professional skills suitable for a resume.{role_hint}"
         else:
-            instruction = f"Rewrite this into a single strong resume bullet point. Start with a powerful action verb, add measurable impact or scope where reasonable, keep it to one line, no period needed at the start.{role_hint}"
+            instruction = f"Rewrite this into a single powerful resume bullet using the formula [strong action verb] + [specific accomplishment] + [quantified impact]. Start with a varied, strong action verb (not 'Responsible for' or 'Helped'). PRESERVE any real numbers, names, or details the person already wrote. If the bullet already has a metric, keep it. If it has NO metric, add a bracketed placeholder like '[X]%' or '[X]+' so they know to insert their real figure (do not invent a fake specific number). Make it achievement-focused, not duty-focused. One line, no period at the start.{role_hint} Example: 'helped customers' becomes 'Resolved [X]+ daily customer inquiries with a [X]% satisfaction rating'."
 
         prompt = f"""You are an expert resume writer. {instruction}
 
@@ -462,28 +497,39 @@ async def suggest_bullets(data: dict):
             return {"bullets": []}
 
         if mode == "skills":
-            prompt = f"""You are an expert resume writer. List 10 of the most relevant, in-demand skills for the job title: "{job_title}".
+            prompt = f"""You are an expert resume writer and recruiter. List the 10 most relevant, in-demand skills that hiring managers and ATS systems specifically look for in a "{job_title}".
 
 RULES:
-- Mix of hard/technical skills and key soft skills that employers and ATS systems look for
-- Each should be short (1-4 words), e.g. "Salesforce CRM", "Data Analysis", "Team Leadership"
-- No explanations, no numbering, no symbols
+- Prioritize SPECIFIC, role-defining skills over generic ones. For a "{job_title}", lead with the actual tools, technologies, certifications, methodologies, and domain skills that role requires.
+- Include real named tools/systems where relevant (e.g. for a data analyst: "SQL", "Tableau", "Python"; for a nurse: "EHR/Epic", "IV Therapy", "Patient Assessment"; for a sales role: "Salesforce CRM", "Pipeline Management")
+- Mix mostly hard/technical skills with 2-3 high-value soft skills that genuinely matter for this role
+- Each short (1-4 words), no explanations, no numbering, no symbols
+- Avoid filler like "hard worker", "team player", "communication" unless truly central to the role
 
-Return ONLY a JSON array of 10 short strings, no markdown, no explanation.
-Example: ["Salesforce CRM", "Cold Calling", "Lead Generation", ...]"""
+Return ONLY a JSON array of 10 short strings, no markdown, no explanation."""
             max_t = 400
         else:
-            prompt = f"""You are an expert resume writer. Generate 5 strong, ready-to-use resume bullet points for the job title: "{job_title}".
+            prompt = f"""You are a top-tier executive resume writer who has helped people land jobs at Google, Amazon, and top firms. Generate 5 outstanding, ready-to-use resume bullet points for the job title: "{job_title}".
+
+WHAT MAKES A GREAT BULLET (follow this formula): [Strong action verb] + [specific task/what you did] + [quantified result or impact].
 
 RULES:
-- Each bullet starts with a powerful action verb
-- Include realistic, measurable impact where natural (percentages, numbers, scope) but keep them generic enough to apply to many people
-- One line each, no period at the start, professional tone
-- Do NOT number them or add bullet symbols
+- Start each with a powerful, varied action verb (Spearheaded, Engineered, Drove, Streamlined, Negotiated, Launched — never repeat the same verb)
+- EVERY bullet must include a metric, but use a BRACKETED PLACEHOLDER for the number so the user knows to fill in their real figure — e.g. "by [X]%", "[$X]K", "a team of [X]", "[X]+ customers". This keeps the user honest and signals they must insert their real numbers.
+- Be SPECIFIC to this exact job title — reference real tools, systems, methods, or responsibilities someone in this role actually uses. A "{job_title}" bullet should be unmistakably about THAT job, not generic filler.
+- Show impact and outcomes, not just duties. "Managed inventory" is weak. "Cut inventory waste by [X]% by implementing a just-in-time tracking system" is strong.
+- One line each, professional, no period at the start, no numbering, no bullet symbols
 
-Return ONLY a JSON array of 5 strings, no markdown, no explanation. Example format:
-["Managed a team of 5 to deliver X", "Increased Y by 30% through Z", ...]"""
-            max_t = 600
+GOOD EXAMPLES (notice the specificity + bracketed placeholders):
+- Retail Sales Associate: "Exceeded monthly sales targets by [X]% for [X] consecutive months by upselling extended warranties and accessories"
+- Software Engineer: "Reduced API response time by [X]% by refactoring legacy database queries and adding Redis caching"
+- Registered Nurse: "Managed care for [X]+ patients per shift while maintaining a [X]% patient satisfaction score"
+
+BAD EXAMPLES (too generic — never do this):
+- "Responsible for helping customers" / "Worked on various projects" / "Strong team player with good communication"
+
+Return ONLY a JSON array of 5 strings, no markdown, no explanation."""
+            max_t = 700
 
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",

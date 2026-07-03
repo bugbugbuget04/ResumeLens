@@ -209,22 +209,11 @@ export default function App() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("resumelens_result");
-      const savedEmail = localStorage.getItem("resumelens_email_submitted");
-      const savedIndustry = localStorage.getItem("resumelens_industry");
-      const savedCompany = localStorage.getItem("resumelens_company");
+      // Note: we intentionally do NOT restore a saved analysis result on page load,
+      // so every visitor (new or returning) lands on the fresh upload page.
+      // We only restore premium status so a paying user keeps their access.
       const savedPremium = localStorage.getItem("resumelens_premium");
-      const savedRewrite = localStorage.getItem("resumelens_rewrite");
-      const savedCL = localStorage.getItem("resumelens_coverletter");
-      const savedLI = localStorage.getItem("resumelens_linkedin");
-      if (saved) setResult(JSON.parse(saved));
-      if (savedEmail === "true") setEmailSubmitted(true);
-      if (savedIndustry) setIndustry(savedIndustry);
-      if (savedCompany) setTargetCompany(savedCompany);
       if (savedPremium === "true") setPremium(true);
-      if (savedRewrite) setRewriteResult(JSON.parse(savedRewrite));
-      if (savedCL) setClResult(JSON.parse(savedCL));
-      if (savedLI) setLiResult(JSON.parse(savedLI));
 
       const params = new URLSearchParams(window.location.search);
       if (params.get("paid") === "true") {

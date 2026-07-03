@@ -56,11 +56,46 @@ async def analyze_resume(
     contents = await file.read()
     pdf = pdfplumber.open(io.BytesIO(contents))
     text = ""
+    page_count = 0
     for page in pdf.pages:
         text += page.extract_text() or ""
+        page_count += 1
+
+    # --- Real parsing-quality signal: if pdfplumber (a text extractor much like an ATS
+    #     parser) struggles with this PDF, a real ATS likely will too. This is an honest,
+    #     measurable formatting signal that pure-AI tools can't produce. ---
+    word_count = len(text.split())
+    parse_flags = []
+    stripped = text.strip()
+    # Heuristics for parse trouble
+    alpha_chars = sum(c.isalpha() for c in stripped)
+    total_chars = max(len(stripped), 1)
+    alpha_ratio = alpha_chars / total_chars
+    has_standard_headings = sum(1 for h in ["experience", "education", "skill"] if h in text.lower())
+
+    if word_count < 40:
+        parse_flags.append("Very little text could be extracted — your resume may be image-based or use a format ATS software can't read. Export a text-based PDF or .docx.")
+    if alpha_ratio < 0.55 and word_count > 0:
+        parse_flags.append("The extracted text contains many stray symbols or broken characters, which suggests columns, tables, or graphics that confuse ATS parsers. Switch to a simple single-column layout.")
+    if has_standard_headings < 2:
+        parse_flags.append("Standard section headings (Experience, Education, Skills) weren't clearly detected. ATS software relies on these exact headings to categorize your resume.")
+
+    # Parse-quality score (0-100): starts at 100, deductions for each real issue
+    parse_score = 100
+    if word_count < 40:
+        parse_score -= 55
+    elif word_count < 120:
+        parse_score -= 15
+    if alpha_ratio < 0.55:
+        parse_score -= 25
+    if has_standard_headings < 2:
+        parse_score -= 20
+    if page_count > 2:
+        parse_score -= 10
+        parse_flags.append("Your resume is longer than 2 pages, which is discouraged for most US roles and can dilute keyword density.")
+    parse_score = max(0, min(100, parse_score))
 
     # --- Input quality detection: thin input = generic output, so flag it honestly ---
-    word_count = len(text.split())
     input_tips = []
     if word_count < 150:
         input_tips.append("Your resume is quite short — adding more detail about your experience, achievements, and skills will produce a much sharper analysis.")
@@ -122,7 +157,12 @@ Return ONLY a JSON object with this exact structure, no markdown, no backticks:
         "summary_section": <number 0-100 — score the resume's professional summary/objective/profile statement at the top. If the resume genuinely has NO summary or objective section at all, score it low (10-30) and note it as a missing element — do NOT default to 0 unless it is truly absent>,
         "formatting": <number 0-100>
     }},
-    "ats_score": <number 0-100>,
+    "ats_breakdown": {{
+        "keywords": <number 0-100 — how well the resume's keywords match the target role/industry and job description. This is the heaviest ATS factor.>,
+        "formatting": <number 0-100 — how cleanly an ATS could parse this resume: standard headings, single-column, no tables/graphics, readable structure>,
+        "structure": <number 0-100 — presence and completeness of standard sections: Contact, Summary, Experience, Education, Skills>,
+        "content_quality": <number 0-100 — action verbs, quantified achievements, appropriate length, strong bullets>
+    }},
     "ats_feedback": "<specific ATS feedback referencing actual resume content and target industry keywords>",
     "job_match_score": {"<number 0-100>" if job_description else "null"},
     "job_match_feedback": {"<specific feedback comparing actual resume bullets to job description requirements>" if job_description else "null"},
@@ -186,7 +226,7 @@ IMPORTANT RULES FOR THE NEW FIELDS:
 
 interview_probability MUST be exactly one of: "Low", "Medium", or "High".
 critical_improvements MUST be an array with exactly 3 objects.
-ats_score MUST be a number between 0 and 100.
+All four ats_breakdown values MUST be numbers between 0 and 100.
 Only return the JSON. No markdown, no backticks, no explanation.
 
 Resume:
@@ -202,6 +242,36 @@ Resume:
     raw = strip_json(response.choices[0].message.content)
     print("ANALYZE RESPONSE:", raw[:200])
     result = json.loads(raw)
+
+    # --- Compute the ATS score using the industry-standard weighted model ---
+    # Keywords 40% + Formatting 30% + Structure 20% + Content Quality 10%
+    bd = result.get("ats_breakdown") or {}
+    def _num(v, default=60):
+        try:
+            return max(0, min(100, float(v)))
+        except Exception:
+            return default
+    kw = _num(bd.get("keywords"))
+    fmt_ai = _num(bd.get("formatting"))
+    struct = _num(bd.get("structure"))
+    content = _num(bd.get("content_quality"))
+
+    # Blend the AI's formatting judgment with our REAL parse signal (50/50),
+    # since parse_score is measured, not guessed.
+    fmt = round(0.5 * fmt_ai + 0.5 * parse_score)
+
+    weighted = round(kw * 0.40 + fmt * 0.30 + struct * 0.20 + content * 0.10)
+    result["ats_score"] = weighted
+    result["ats_breakdown"] = {
+        "keywords": round(kw),
+        "formatting": fmt,
+        "structure": round(struct),
+        "content_quality": round(content),
+    }
+    result["ats_weights"] = {"keywords": 40, "formatting": 30, "structure": 20, "content_quality": 10}
+    result["parse_score"] = parse_score
+    result["parse_flags"] = parse_flags
+
     # attach input-quality signal so the frontend can guide the user
     result["input_quality"] = input_quality
     result["input_tips"] = input_tips

@@ -780,6 +780,53 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
               </div>
             )}
 
+            {/* ATS Score Breakdown — transparent weighted model */}
+            {result.ats_breakdown && (
+              <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm rl-card">
+                <div className="flex items-center justify-between mb-1">
+                  <h2 className="font-bold text-stone-900 text-base">🤖 ATS Score Breakdown</h2>
+                  <span className={`text-2xl font-black ${sc(result.ats_score)}`}>{result.ats_score}<span className="text-sm text-stone-300">/100</span></span>
+                </div>
+                <p className="text-stone-500 text-xs mb-5">Your ATS score is a weighted blend of four factors — the same model professional ATS checkers use. Formatting is measured directly from how cleanly your file parsed.</p>
+                <div className="space-y-4">
+                  {[
+                    { key: "keywords", label: "Keywords", weight: 40, desc: "Match with the role & job description" },
+                    { key: "formatting", label: "Formatting / Parsability", weight: 30, desc: "How cleanly an ATS can read your file" },
+                    { key: "structure", label: "Structure", weight: 20, desc: "Standard sections present & complete" },
+                    { key: "content_quality", label: "Content Quality", weight: 10, desc: "Action verbs, metrics, length" },
+                  ].map((c) => {
+                    const val = result.ats_breakdown[c.key];
+                    return (
+                      <div key={c.key}>
+                        <div className="flex justify-between items-baseline text-sm mb-1">
+                          <span className="text-stone-700 font-semibold">{c.label} <span className="text-stone-400 font-normal text-xs">· {c.weight}% of score</span></span>
+                          <span className={`font-bold ${sc(val)}`}>{val}/100</span>
+                        </div>
+                        <div className="text-stone-400 text-xs mb-1.5">{c.desc}</div>
+                        <ScoreBar score={val} color={sbc(val)} />
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Real parse flags — measured, honest formatting issues */}
+                {result.parse_flags && result.parse_flags.length > 0 && (
+                  <div className="mt-5 bg-orange-50 border border-orange-200 rounded-xl p-4">
+                    <p className="text-xs font-bold text-orange-700 mb-2">⚠️ Parsing issues we detected in your actual file:</p>
+                    <ul className="space-y-1.5">
+                      {result.parse_flags.map((f: string, i: number) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-orange-800"><span className="text-orange-400 mt-0.5">•</span>{f}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {result.ats_feedback && (
+                  <p className="text-stone-600 text-sm mt-4 pt-4 border-t border-stone-100">{result.ats_feedback}</p>
+                )}
+              </div>
+            )}
+
             {/* Input quality guidance — shown when input was thin */}
             {result.input_tips && result.input_tips.length > 0 && (
               <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 shadow-sm">

@@ -13,6 +13,9 @@ load_dotenv()
 # Google Sheet web app — collects emails & feedback reliably (survives server restarts)
 GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbyJsDT2oLV9QMh3JPk8X7TDkj5Yq_j6amjgMrn4VFUmysdk0cwBVlcLSwLac-6bjIlp/exec"
 
+# AI model — one place to change it if Groq deprecates a model again
+GROQ_MODEL = "openai/gpt-oss-120b"
+
 app = FastAPI()
 
 app.add_middleware(
@@ -192,7 +195,7 @@ Resume:
 """
 
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model=GROQ_MODEL,
         messages=[{"role": "user", "content": prompt}],
         temperature=0.3,
     )
@@ -287,7 +290,7 @@ ORIGINAL RESUME:
 """
 
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model=GROQ_MODEL,
         messages=[{"role": "user", "content": prompt}],
         temperature=0.6,
         max_tokens=4000,
@@ -364,7 +367,7 @@ RESUME:
 """
 
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model=GROQ_MODEL,
         messages=[{"role": "user", "content": prompt}],
         temperature=0.5,
         max_tokens=2000,
@@ -435,7 +438,7 @@ LINKEDIN PROFILE:
 """
 
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model=GROQ_MODEL,
         messages=[{"role": "user", "content": prompt}],
         temperature=0.4,
         max_tokens=3000,
@@ -472,7 +475,7 @@ Return ONLY the rewritten text, no quotes, no markdown, no explanation, no pream
 Original: {text}"""
 
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model=GROQ_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.5,
             max_tokens=300,
@@ -532,7 +535,7 @@ Return ONLY a JSON array of 5 strings, no markdown, no explanation."""
             max_t = 700
 
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model=GROQ_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.6,
             max_tokens=max_t,

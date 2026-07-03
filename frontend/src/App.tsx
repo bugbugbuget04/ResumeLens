@@ -162,6 +162,9 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [premium, setPremium] = useState(false);
+  const [licenseKey, setLicenseKey] = useState("");
+  const [licenseError, setLicenseError] = useState("");
+  const [verifying, setVerifying] = useState(false);
   const [email, setEmail] = useState("");
   const [emailSubmitted, setEmailSubmitted] = useState(false);
   const [industry, setIndustry] = useState("");
@@ -209,18 +212,11 @@ export default function App() {
 
   useEffect(() => {
     try {
-      // Note: we intentionally do NOT restore a saved analysis result on page load,
-      // so every visitor (new or returning) lands on the fresh upload page.
-      // We only restore premium status so a paying user keeps their access.
+      // Every visitor lands on the fresh upload page (no saved analysis restored).
+      // Premium is only restored if it was unlocked via a VERIFIED license key
+      // (stored after server-side verification), so it can't be faked with a URL.
       const savedPremium = localStorage.getItem("resumelens_premium");
       if (savedPremium === "true") setPremium(true);
-
-      const params = new URLSearchParams(window.location.search);
-      if (params.get("paid") === "true") {
-        setPremium(true);
-        localStorage.setItem("resumelens_premium", "true");
-        window.history.replaceState({}, "", window.location.pathname);
-      }
     } catch (e) {}
   }, []);
 
@@ -237,8 +233,26 @@ export default function App() {
     if (email) localStorage.setItem("resumelens_email_submitted", "true");
     if (industry) localStorage.setItem("resumelens_industry", industry);
     if (targetCompany) localStorage.setItem("resumelens_company", targetCompany);
-    const successUrl = encodeURIComponent(window.location.origin + "?paid=true");
-    window.location.href = `${CHECKOUT_URL}?checkout[success_url]=${successUrl}`;
+    window.location.href = CHECKOUT_URL;
+  };
+
+  const verifyLicense = async () => {
+    if (!licenseKey.trim()) { setLicenseError("Please enter your license key."); return; }
+    setVerifying(true);
+    setLicenseError("");
+    try {
+      const res = await axios.post(`${API}/verify-license`, { license_key: licenseKey.trim() });
+      if (res.data?.valid) {
+        setPremium(true);
+        localStorage.setItem("resumelens_premium", "true");
+        setLicenseError("");
+      } else {
+        setLicenseError(res.data?.error || "That license key isn't valid.");
+      }
+    } catch {
+      setLicenseError("Couldn't verify right now — please try again in a moment.");
+    }
+    setVerifying(false);
   };
 
   const handleGoHome = () => {
@@ -1309,6 +1323,29 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
                   Unlock Full Report — $3.99
                 </button>
                 <p className="text-stone-500 text-xs mt-3">One-time payment • Instant access • Everything included</p>
+
+                {/* License key entry — for after they've paid */}
+                <div className="mt-6 pt-6 border-t border-yellow-300/60">
+                  <p className="text-stone-600 text-sm font-semibold mb-2">Already purchased? Enter your license key</p>
+                  <p className="text-stone-500 text-xs mb-3">Check your email receipt from Lemon Squeezy for your license key.</p>
+                  <div className="flex gap-2 max-w-md mx-auto">
+                    <input
+                      type="text"
+                      value={licenseKey}
+                      onChange={(e) => { setLicenseKey(e.target.value); setLicenseError(""); }}
+                      placeholder="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+                      className="flex-1 bg-white border border-stone-300 focus:border-yellow-400 rounded-lg px-3 py-2 text-stone-900 text-sm outline-none transition-all"
+                    />
+                    <button
+                      onClick={verifyLicense}
+                      disabled={verifying}
+                      className="bg-stone-900 hover:bg-stone-800 text-white px-5 py-2 rounded-lg font-bold text-sm transition-all disabled:opacity-60 whitespace-nowrap"
+                    >
+                      {verifying ? "Checking…" : "Unlock"}
+                    </button>
+                  </div>
+                  {licenseError && <p className="text-red-500 text-xs mt-2">{licenseError}</p>}
+                </div>
               </div>
             )}
 

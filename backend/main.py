@@ -551,6 +551,34 @@ Return ONLY a JSON array of 5 strings, no markdown, no explanation."""
         return {"bullets": []}
 
 
+@app.post("/verify-license")
+async def verify_license(data: dict):
+    """Verify a Lemon Squeezy license key so premium can't be unlocked by guessing a URL."""
+    key = data.get("license_key", "").strip()
+    if not key:
+        return {"valid": False, "error": "Please enter your license key."}
+    try:
+        # Lemon Squeezy license validation API
+        resp = requests.post(
+            "https://api.lemonsqueezy.com/v1/licenses/validate",
+            data={"license_key": key},
+            headers={"Accept": "application/json"},
+            timeout=10,
+        )
+        result = resp.json()
+        # "valid" is true when the key exists and is active
+        if result.get("valid") is True:
+            return {"valid": True}
+        # activation-limit or inactive keys still return valid license_key info
+        lic = result.get("license_key")
+        if lic and lic.get("status") == "active":
+            return {"valid": True}
+        return {"valid": False, "error": "That license key isn't valid. Please check and try again."}
+    except Exception as e:
+        print("License verify error:", str(e))
+        return {"valid": False, "error": "Couldn't verify right now — please try again in a moment."}
+
+
 @app.post("/feedback")
 async def save_feedback(data: dict):
     rating = data.get("rating", "")

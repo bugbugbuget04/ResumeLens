@@ -285,7 +285,8 @@ STRICT RULES YOU MUST FOLLOW:
 - Strengths must be specific skills or experiences actually visible in the resume, not generic traits like "communication skills"
 - Critical improvements must include the EXACT weak text from the resume and the EXACT improved version
 - Target roles must match the candidate's actual experience level — don't suggest senior roles to a junior candidate
-- In rewrites, PRESERVE real numbers already present; where a metric is missing, use a bracketed placeholder like "[X]%" instead of inventing a number
+- In rewrites, PRESERVE real numbers already present; where a metric is missing, use a bracketed placeholder like "[X]%". EVERY number in a rewrite must either exist in the original resume or be a bracketed placeholder — outputting an invented realistic-looking specific (e.g. "30+", "95%", "12 leads") is a violation
+- In rewrites, never claim tools, platforms, or skills (e.g. a specific CRM) that the original resume does not mention, and never import activities or volumes from the job description into the candidate's experience
 
 CRITICAL — FUNDAMENTAL MISMATCH CHECK (honesty over politeness):
 If the candidate is applying to a role they are FUNDAMENTALLY unqualified for — meaning they lack the core degree, license, certification, or entire field of training that the role legally or practically requires (e.g. a Computer Science student applying for a Staff Nurse, Cardiologist, Lawyer, or Civil Engineer role) — you MUST NOT softly encourage them. Be honest and direct. Set "fundamental_mismatch" to true and clearly state they should not apply to this specific role as-is, explain exactly what core qualifications they are missing (degrees, licenses, certifications, years of clinical/field training), and point them toward roles that DO fit their actual background. This is being kind by being honest — it saves them from wasting applications. For normal gaps (missing a few skills, needs more experience, weak bullets) set "fundamental_mismatch" to false — those are fixable and should get the usual constructive feedback.
@@ -470,17 +471,24 @@ You are a top-tier US resume writer who has helped candidates land roles at Fort
 {level_context}
 {analysis_context}
 
-YOUR MISSION: Transform every weak, duty-based line into a strong, achievement-driven bullet. The rewritten resume should be dramatically better than the original — not a light edit.
+YOUR MISSION: Transform every weak, duty-based line into a strong, achievement-driven bullet. The rewritten resume should be dramatically better than the original — not a light edit — while remaining 100% TRUTHFUL to the candidate's real experience.
 
 THE BULLET FORMULA: [Powerful action verb] + [specific accomplishment] + [quantified impact].
+
+TRUTHFULNESS RULES (highest priority — violating these harms the candidate):
+- NEVER claim skills, tools, platforms, certifications, frameworks, or types of experience that the original resume does not contain. If the target role wants Salesforce and the resume never mentions Salesforce, do NOT write a summary line or bullet implying they used it. A fabricated skill gets the candidate humiliated in the interview and destroys trust in this product.
+- NEVER import activities or numbers from the JOB DESCRIPTION into the candidate's experience (e.g. if the JD says "50+ calls/day", do not write a bullet claiming the candidate made 50+ calls/day unless the original resume says so).
+- The professional summary may describe ONLY what the original resume evidences. No "proven ability in X" or "skilled in Y" for things never done.
+- Weave a missing keyword into experience ONLY where genuinely equivalent experience exists (e.g. "kept track of leads in a spreadsheet" can honestly become "maintained lead pipeline records"). Missing keywords with NO supporting experience must NOT appear as claimed experience — instead, end the resume with a short section titled "TARGET SKILLS TO DEVELOP" listing them, so the candidate knows exactly what to learn for this role.
+- EVERY numeric value in your output must either appear in the original resume or be a bracketed placeholder like "[X]", "[X]%", "[$X]K". Writing an invented realistic-looking specific (e.g. "30+", "95%", "12 leads") is a violation.
 
 RULES:
 - Keep ALL real experience, companies, job titles, dates, and education exactly as given — NEVER fabricate jobs, degrees, or employers
 - PRESERVE any real numbers and details already in the resume. Where the original lacks numbers, add a BRACKETED PLACEHOLDER like "[X]%", "[X]+", or "[$X]K" instead of inventing a fake specific number — this signals the candidate must insert their real figure and keeps them honest
 - Start bullets with strong, varied action verbs (Spearheaded, Engineered, Drove, Optimized, Launched, Negotiated). Never reuse the same verb or start with "Responsible for", "Helped with", or "Worked on"
-- Weave in missing keywords naturally so it passes ATS for the target role/industry
-- Write a sharp 2-3 line professional summary at the top tailored to the target role
-- Clear section headers: SUMMARY, EXPERIENCE, EDUCATION, SKILLS
+- Weave in missing keywords ONLY per the truthfulness rules above; unsupported keywords go in "TARGET SKILLS TO DEVELOP"
+- Write a sharp 2-3 line professional summary at the top tailored to the target role, grounded strictly in real experience
+- Clear section headers: SUMMARY, EXPERIENCE, EDUCATION, SKILLS (plus TARGET SKILLS TO DEVELOP if needed)
 - Keep it to 1 page of content (2 pages only for 10+ years of experience)
 
 TRANSFORMATION EXAMPLES (this is the quality bar — note bracketed placeholders for missing numbers):

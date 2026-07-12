@@ -6,6 +6,7 @@ import pdfplumber
 import io
 import os
 import json
+import re
 import requests
 
 load_dotenv()
@@ -28,6 +29,11 @@ app.add_middleware(
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 
+# ────────────────────────────────────────────────────────────────────
+#  JSON helpers — robust parsing with one repair-retry so a single
+#  malformed model response never 500s the whole request
+# ────────────────────────────────────────────────────────────────────
+
 def strip_json(raw: str) -> str:
     """Strip markdown fences if model wraps response in them."""
     raw = raw.strip()
@@ -39,10 +45,120 @@ def strip_json(raw: str) -> str:
     return raw.strip()
 
 
+def ai_json(prompt: str, temperature: float = 0.2, max_tokens: int = 4000):
+    """Call the model expecting JSON. If parsing fails, ask the model once to repair it."""
+    response = client.chat.completions.create(
+        model=GROQ_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )
+    raw = strip_json(response.choices[0].message.content)
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        # One repair attempt: hand the broken output back and ask for valid JSON only
+        repair = client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[{
+                "role": "user",
+                "content": "The following was supposed to be a valid JSON object but is malformed. "
+                           "Return the corrected, complete, valid JSON only — no markdown, no backticks, no commentary:\n\n" + raw
+            }],
+            temperature=0,
+            max_tokens=max_tokens,
+        )
+        return json.loads(strip_json(repair.choices[0].message.content))
+
+
+def _num(v, default=60):
+    try:
+        return max(0, min(100, float(v)))
+    except Exception:
+        return default
+
+
+# ────────────────────────────────────────────────────────────────────
+#  PASS 1 — Resume fact extraction (temperature 0, pure facts)
+#  Extracting structure first means the judgment pass reasons over
+#  verified content instead of skimming raw text, which is what makes
+#  feedback specific instead of generic.
+# ────────────────────────────────────────────────────────────────────
+
+def extract_resume_facts(text: str):
+    prompt = f"""You are a resume PARSER. Extract facts from the resume below. Do NOT judge, score, or give opinions — only extract what is literally written.
+
+Return ONLY a JSON object, no markdown, no backticks:
+
+{{
+  "has_summary": <true if there is a professional summary/objective/profile paragraph near the top, else false>,
+  "summary_text": "<the verbatim summary text, or empty string>",
+  "contact": {{"email": <bool>, "phone": <bool>, "linkedin_or_site": <bool>, "location": <bool>}},
+  "sections_present": ["<section headings actually found, e.g. Experience, Education, Skills, Projects>"],
+  "roles": [
+    {{
+      "title": "<exact job title>",
+      "company": "<exact company name>",
+      "dates": "<exact date text>",
+      "bullets": ["<each bullet verbatim, word for word>"]
+    }}
+  ],
+  "education": [{{"degree": "<verbatim>", "school": "<verbatim>", "dates": "<verbatim>"}}],
+  "skills_listed": ["<each skill exactly as written>"],
+  "certifications": ["<verbatim, or empty array>"],
+  "estimated_total_years_experience": <number, best estimate from the dates; 0 if student/no experience>,
+  "quantified_bullet_count": <how many bullets contain a number, %, $, or other metric>,
+  "total_bullet_count": <total number of experience bullets>
+}}
+
+Rules:
+- Copy text EXACTLY as written. Do not paraphrase, fix typos, or improve anything.
+- If a field is absent, use empty string / empty array / false.
+- Every bullet in "bullets" must be a verbatim copy from the resume.
+
+RESUME:
+{text}"""
+    return ai_json(prompt, temperature=0, max_tokens=3500)
+
+
+# ────────────────────────────────────────────────────────────────────
+#  PASS 2 — Job-description requirement extraction (temperature 0)
+#  Building the checklist BEFORE scoring means the requirement match
+#  reflects the actual posting, not the model's vibe of it.
+# ────────────────────────────────────────────────────────────────────
+
+def extract_jd_requirements(job_description: str):
+    prompt = f"""You are a job-description PARSER. Extract the concrete requirements from the posting below. Do NOT judge any candidate — only extract.
+
+Return ONLY a JSON object, no markdown, no backticks:
+
+{{
+  "role_title": "<the job title in the posting, or empty string>",
+  "seniority": "<entry|mid|senior|lead|executive|unclear>",
+  "requirements": [
+    {{"requirement": "<one specific, checkable requirement — a skill, tool, credential, or experience>", "type": "<must|preferred>"}}
+  ]
+}}
+
+Rules:
+- Extract 5 to 8 requirements, prioritizing the ones the posting emphasizes most.
+- Each requirement must be specific and checkable against a resume (e.g. "3+ years of B2B SaaS sales", "Salesforce CRM", "Bachelor's degree in Computer Science") — not vague ("good communication").
+- Mark "must" for hard requirements, "preferred" for nice-to-haves.
+
+JOB DESCRIPTION:
+{job_description}"""
+    return ai_json(prompt, temperature=0, max_tokens=1500)
+
+
 @app.get("/")
 def root():
     return {"message": "ResumeLens API is running!"}
 
+# ────────────────────────────────────────────────────────────────────
+#  PASS 3 — Judgment. The analysis prompt receives the raw text PLUS
+#  the extracted facts PLUS the JD requirement checklist, and scores
+#  against anchored rubrics for run-to-run consistency.
+# ────────────────────────────────────────────────────────────────────
 
 @app.post("/analyze")
 async def analyze_resume(
@@ -61,13 +177,10 @@ async def analyze_resume(
         text += page.extract_text() or ""
         page_count += 1
 
-    # --- Real parsing-quality signal: if pdfplumber (a text extractor much like an ATS
-    #     parser) struggles with this PDF, a real ATS likely will too. This is an honest,
-    #     measurable formatting signal that pure-AI tools can't produce. ---
+    # --- Real parsing-quality signal (measured, not guessed) ---
     word_count = len(text.split())
     parse_flags = []
     stripped = text.strip()
-    # Heuristics for parse trouble
     alpha_chars = sum(c.isalpha() for c in stripped)
     total_chars = max(len(stripped), 1)
     alpha_ratio = alpha_chars / total_chars
@@ -80,7 +193,6 @@ async def analyze_resume(
     if has_standard_headings < 2:
         parse_flags.append("Standard section headings (Experience, Education, Skills) weren't clearly detected. ATS software relies on these exact headings to categorize your resume.")
 
-    # Parse-quality score (0-100): starts at 100, deductions for each real issue
     parse_score = 100
     if word_count < 40:
         parse_score -= 55
@@ -95,7 +207,7 @@ async def analyze_resume(
         parse_flags.append("Your resume is longer than 2 pages, which is discouraged for most US roles and can dilute keyword density.")
     parse_score = max(0, min(100, parse_score))
 
-    # --- Input quality detection: thin input = generic output, so flag it honestly ---
+    # --- Input quality detection ---
     input_tips = []
     if word_count < 150:
         input_tips.append("Your resume is quite short — adding more detail about your experience, achievements, and skills will produce a much sharper analysis.")
@@ -105,15 +217,43 @@ async def analyze_resume(
         input_tips.append("Add your target role so feedback can be tailored to what that job needs.")
     input_quality = "high" if word_count >= 250 and job_description else ("low" if word_count < 150 or (not job_description and not target_role) else "medium")
 
+    # ── PASS 1: extract structured facts (graceful fallback to {} on failure) ──
+    try:
+        facts = extract_resume_facts(text) if word_count >= 25 else {}
+    except Exception as e:
+        print("Fact extraction failed, continuing single-pass:", str(e))
+        facts = {}
+
+    # ── PASS 2: extract JD requirements if a JD was pasted ──
+    jd_requirements = []
+    jd_meta = {}
+    if job_description.strip():
+        try:
+            jd_parsed = extract_jd_requirements(job_description)
+            jd_requirements = jd_parsed.get("requirements", []) or []
+            jd_meta = {"role_title": jd_parsed.get("role_title", ""), "seniority": jd_parsed.get("seniority", "")}
+        except Exception as e:
+            print("JD extraction failed, continuing without checklist:", str(e))
+
     quality_note = ""
     if input_quality != "high":
         quality_note = "\n\nNOTE ON INPUT: The provided resume and/or job details are limited, so some feedback may be necessarily broad. Where you lack specific information from the resume, be honest that you cannot assess it rather than inventing generic filler — and note what the candidate could add for a deeper analysis."
 
     industry_context = f"The candidate is targeting the {industry} industry. Tailor ALL feedback specifically for what {industry} employers and ATS systems look for." if industry else ""
-    company_context = f"The target company is {target_company}. Research what {target_company} specifically looks for in candidates — their culture, known ATS keywords, hiring bar, and role expectations — and reference this directly in your feedback." if target_company else ""
+    company_context = f"The target company is {target_company}. Reference what {target_company} is known to look for in candidates — culture, hiring bar, and role expectations — in your feedback. If you are not confident about company-specific facts, keep it general rather than inventing details." if target_company else ""
     role_context = f"The candidate is specifically targeting the role of '{target_role}'. Evaluate the resume against what this exact role requires." if target_role else ""
     level_context = f"The candidate's experience level is: {experience_level}. CRITICAL: only suggest roles and feedback appropriate for this level — never suggest senior roles to an entry-level candidate or vice versa." if experience_level else ""
     jd_context = f"\n\nJOB DESCRIPTION TO MATCH AGAINST:\n{job_description}" if job_description else ""
+
+    facts_context = f"\n\nEXTRACTED RESUME FACTS (verified verbatim content — treat this as ground truth; every claim you make must be traceable to it):\n{json.dumps(facts, indent=1)}" if facts else ""
+
+    if jd_requirements:
+        req_list = json.dumps(jd_requirements, indent=1)
+        requirement_instruction = f"""For "requirement_match", evaluate EXACTLY these requirements extracted from the job description — use each "requirement" string verbatim, do not invent your own list:
+{req_list}
+For each, set "found" true ONLY if the extracted resume facts contain real evidence, and cite that evidence."""
+    else:
+        requirement_instruction = """For "requirement_match", list the 5-8 most important requirements for the candidate's target role/industry, and honestly evaluate each against the extracted resume facts."""
 
     prompt = f"""
 You are simulating THREE expert reviewers analyzing this resume together:
@@ -129,136 +269,138 @@ Be BRUTALLY HONEST. Avoid generic resume advice that users have heard 500 times.
 {level_context}
 {quality_note}
 
+EVIDENCE RULE (most important rule): every score, strength, weakness, and claim you output MUST be traceable to the extracted resume facts or the raw resume text below. When you criticize something, QUOTE the exact text you are criticizing. When you praise something, NAME the exact title/company/bullet/skill. Never attribute anything to the resume that is not literally in it.
+
+ANCHORED SCORING RUBRIC (apply these bands consistently to every 0-100 score):
+- 90-100: exceptional — would impress a top-tier recruiter immediately; quantified, targeted, flawless
+- 75-89: strong — clearly above average; minor improvements possible
+- 60-74: decent — solid foundation but visible weaknesses a recruiter would notice
+- 40-59: weak — significant problems that will cost interviews
+- 0-39: poor — major elements missing, unreadable, or fundamentally off-target
+Score against the band definitions, not against a feeling. The same resume must earn the same scores every time.
+
 STRICT RULES YOU MUST FOLLOW:
 - Every piece of feedback MUST reference specific content from the actual resume (real job titles, real company names, real bullet points, real skills listed)
 - NEVER say vague things like "add metrics" or "improve your summary" — instead quote the exact weak text and show the exact rewrite
 - Strengths must be specific skills or experiences actually visible in the resume, not generic traits like "communication skills"
 - Critical improvements must include the EXACT weak text from the resume and the EXACT improved version
 - Target roles must match the candidate's actual experience level — don't suggest senior roles to a junior candidate
-- If a target company is provided, mention specifically what that company looks for and how this resume falls short or succeeds
-- If a job description is provided, compare the resume line by line against the requirements
+- In rewrites, PRESERVE real numbers already present; where a metric is missing, use a bracketed placeholder like "[X]%" instead of inventing a number
 
 CRITICAL — FUNDAMENTAL MISMATCH CHECK (honesty over politeness):
 If the candidate is applying to a role they are FUNDAMENTALLY unqualified for — meaning they lack the core degree, license, certification, or entire field of training that the role legally or practically requires (e.g. a Computer Science student applying for a Staff Nurse, Cardiologist, Lawyer, or Civil Engineer role) — you MUST NOT softly encourage them. Be honest and direct. Set "fundamental_mismatch" to true and clearly state they should not apply to this specific role as-is, explain exactly what core qualifications they are missing (degrees, licenses, certifications, years of clinical/field training), and point them toward roles that DO fit their actual background. This is being kind by being honest — it saves them from wasting applications. For normal gaps (missing a few skills, needs more experience, weak bullets) set "fundamental_mismatch" to false — those are fixable and should get the usual constructive feedback.
 
+{requirement_instruction}
+
 Return ONLY a JSON object with this exact structure, no markdown, no backticks:
 
 {{
-    "overall_score": <number 0-100>,
+    "overall_score": <number 0-100 per the rubric>,
     "fundamental_mismatch": <true or false — true ONLY for severe field/qualification mismatches as described above>,
     "mismatch_warning": "<if fundamental_mismatch is true: a direct, honest 1-2 sentence statement that they should not apply to this role and why. If false: empty string>",
-    "mismatch_requirements": ["<if mismatch: a core qualification they would NEED to be eligible, e.g. 'A Bachelor of Science in Nursing (BSN)'>", "<another required qualification>", "<another>"],
+    "mismatch_requirements": ["<if mismatch: a core qualification they would NEED to be eligible>", "<another>", "<another>"],
     "summary": "<3 sentence summary that references their actual job titles, companies, and specific gaps for their target industry>",
-    "recruiter_first_impression": "<Write what a recruiter notices in the first 6 seconds of scanning THIS resume. Reference actual things visible — their most recent title, a standout project, or a glaring gap. Format as 2-4 short punchy observations, each starting with the candidate's reality. Be honest about what jumps out, good AND bad.>",
+    "recruiter_first_impression": "<What a recruiter notices in the first 6 seconds of scanning THIS resume. Reference actual things visible — their most recent title, a standout project, or a glaring gap. 2-4 short punchy observations. Be honest about what jumps out, good AND bad.>",
     "section_scores": {{
         "work_experience": <number 0-100>,
         "skills": <number 0-100>,
         "education": <number 0-100>,
-        "summary_section": <number 0-100 — score the resume's professional summary/objective/profile statement at the top. If the resume genuinely has NO summary or objective section at all, score it low (10-30) and note it as a missing element — do NOT default to 0 unless it is truly absent>,
+        "summary_section": <number 0-100 — if the extracted facts show has_summary=false, score 10-30 and flag it as missing; if a summary exists, judge its actual text>,
         "formatting": <number 0-100>
     }},
     "ats_breakdown": {{
-        "keywords": <number 0-100 — how well the resume's keywords match the target role/industry and job description. This is the heaviest ATS factor.>,
-        "formatting": <number 0-100 — how cleanly an ATS could parse this resume: standard headings, single-column, no tables/graphics, readable structure>,
-        "structure": <number 0-100 — presence and completeness of standard sections: Contact, Summary, Experience, Education, Skills>,
-        "content_quality": <number 0-100 — action verbs, quantified achievements, appropriate length, strong bullets>
+        "keywords": <number 0-100 — how well the resume's actual keywords match the target role/industry and job description>,
+        "formatting": <number 0-100 — how cleanly an ATS could parse this resume>,
+        "structure": <number 0-100 — presence and completeness of standard sections per the extracted facts>,
+        "content_quality": <number 0-100 — use the extracted quantified_bullet_count vs total_bullet_count ratio, action verbs, length>
     }},
     "ats_feedback": "<specific ATS feedback referencing actual resume content and target industry keywords>",
     "job_match_score": {"<number 0-100>" if job_description else "null"},
-    "job_match_feedback": {"<specific feedback comparing actual resume bullets to job description requirements>" if job_description else "null"},
+    "job_match_feedback": {'"<specific feedback comparing actual resume bullets to job description requirements>"' if job_description else "null"},
     "requirement_match": [
-        {"{"} "requirement": "<a specific requirement or skill from the job description (or, if no JD, a key requirement for their target role/industry)>", "found": <true or false — is this genuinely evidenced in their resume?>, "evidence": "<if found: briefly cite where in their resume; if not found: empty string>" {"}"}
+        {{"requirement": "<requirement text>", "found": <true or false>, "evidence": "<if found: cite the exact resume content that proves it; if not found: empty string>"}}
     ],
     "keyword_analysis": {{
-        "strong_keywords": ["<actual keyword found in their resume>", "<actual keyword>", "<actual keyword>"],
-        "missing_keywords": ["<important keyword missing for their target role/industry>", "<missing keyword>", "<missing keyword>"]
+        "strong_keywords": ["<keyword literally present in the extracted skills or bullets>", "<...>", "<...>"],
+        "missing_keywords": ["<important keyword absent from the resume for their target role>", "<...>", "<...>"]
     }},
     "bullet_point_analysis": {{
         "score": <number 0-100>,
         "feedback": "<specific feedback referencing actual bullets from the resume>",
-        "weak_bullet": "<copy an exact weak bullet from their resume word for word>",
-        "improved_bullet": "<rewrite that exact bullet with specific metrics, impact, and action verbs>"
+        "weak_bullet": "<copy an exact weak bullet from the extracted facts word for word>",
+        "improved_bullet": "<rewrite of that exact bullet — preserve real numbers, use [X] placeholders for missing metrics>"
     }},
     "bullet_rewrites": [
-        {"{"} "original": "<an exact bullet copied word-for-word from their resume>", "rewrite": "<a stronger version of that exact bullet — add action verb, specific impact, and a realistic metric>" {"}"},
-        {"{"} "original": "<another exact bullet from their resume>", "rewrite": "<stronger version>" {"}"},
-        {"{"} "original": "<a third exact bullet from their resume>", "rewrite": "<stronger version>" {"}"}
+        {{"original": "<an exact bullet copied word-for-word from the extracted roles' bullets>", "rewrite": "<stronger version — action verb + specific impact + metric or [X] placeholder>"}},
+        {{"original": "<another exact bullet>", "rewrite": "<stronger version>"}},
+        {{"original": "<a third exact bullet>", "rewrite": "<stronger version>"}}
     ],
     "top_strengths": [
-        "<quote or directly reference an actual job title, company, bullet point, or skill LITERALLY found in the resume>",
+        "<a strength quoting an actual job title, company, bullet, or skill from the extracted facts>",
         "<another strength pulled directly from actual resume content>",
         "<third strength grounded in something literally written in the resume>"
     ],
     "critical_improvements": [
-        {{
-            "priority": "HIGH",
-            "section": "<section name>",
-            "issue": "<quote the exact weak text or describe the specific missing element>",
-            "fix": "<exact rewrite or precise action — never generic advice>"
-        }},
-        {{
-            "priority": "HIGH",
-            "section": "<section name>",
-            "issue": "<quote the exact weak text or describe the specific missing element>",
-            "fix": "<exact rewrite or precise action>"
-        }},
-        {{
-            "priority": "MEDIUM",
-            "section": "<section name>",
-            "issue": "<quote the exact weak text or describe the specific missing element>",
-            "fix": "<exact rewrite or precise action>"
-        }}
+        {{"priority": "HIGH", "section": "<section name>", "issue": "<quote the exact weak text or name the specific missing element>", "fix": "<exact rewrite or precise action — never generic advice>"}},
+        {{"priority": "HIGH", "section": "<section name>", "issue": "<quote the exact weak text or name the specific missing element>", "fix": "<exact rewrite or precise action>"}},
+        {{"priority": "MEDIUM", "section": "<section name>", "issue": "<quote the exact weak text or name the specific missing element>", "fix": "<exact rewrite or precise action>"}}
     ],
     "competitive_gap": {{
         "intro": "<one honest sentence: what the strongest candidates for their target role/industry typically have>",
         "candidates_have": ["<a credential, skill, or experience top candidates in this field usually have>", "<another>", "<another>"],
-        "you_are_missing": ["<which of those THIS candidate lacks, based on their actual resume>", "<another they're missing, or empty if they have most>"]
+        "you_are_missing": ["<which of those THIS candidate lacks, based on the extracted facts>", "<another, or empty if they have most>"]
     }},
-    "interview_probability": "Low",
-    "target_roles": ["<role that matches their actual experience level and background>", "<role>", "<role>"]
+    "interview_probability": "<exactly one of: Low, Medium, High>",
+    "target_roles": ["<role matching their actual experience level and background>", "<role>", "<role>"]
 }}
 
-IMPORTANT RULES FOR THE NEW FIELDS:
-- "requirement_match" MUST be an array of 5-8 items. If a job description is provided, pull requirements directly from it. If no job description, use the most important requirements for their stated target role/industry. Be honest about "found" — only mark true if there is real evidence in the resume.
-- "bullet_rewrites" MUST contain exactly 3 items, each using a REAL bullet copied exactly from their resume. If the resume has fewer than 3 bullets, rewrite what exists and fill remaining with the weakest sentences present.
-- "recruiter_first_impression" must reference actual specific content, not generic phrases.
-- "competitive_gap" must be grounded in their real background and realistic for their target field.
-
-interview_probability MUST be exactly one of: "Low", "Medium", or "High".
-critical_improvements MUST be an array with exactly 3 objects.
-All four ats_breakdown values MUST be numbers between 0 and 100.
+HARD REQUIREMENTS:
+- "requirement_match" MUST contain 5-8 items{" using the provided requirement list verbatim" if jd_requirements else ""}.
+- "bullet_rewrites" MUST contain exactly 3 items, each "original" copied exactly from the extracted bullets. If fewer than 3 bullets exist, use the weakest sentences present in the resume.
+- critical_improvements MUST be an array with exactly 3 objects.
+- All four ats_breakdown values MUST be numbers between 0 and 100.
 Only return the JSON. No markdown, no backticks, no explanation.
 
-Resume:
+RAW RESUME TEXT:
 {text}
+{facts_context}
 {jd_context}
 """
 
-    response = client.chat.completions.create(
-        model=GROQ_MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.3,
-    )
-    raw = strip_json(response.choices[0].message.content)
-    print("ANALYZE RESPONSE:", raw[:200])
-    result = json.loads(raw)
+    result = ai_json(prompt, temperature=0.15, max_tokens=4500)
 
-    # --- Compute the ATS score using the industry-standard weighted model ---
-    # Keywords 40% + Formatting 30% + Structure 20% + Content Quality 10%
+    # ── Validate bullet_rewrites originals against the real resume text ──
+    def _in_resume(s: str) -> bool:
+        norm = re.sub(r"\s+", " ", (s or "")).strip().lower()
+        hay = re.sub(r"\s+", " ", text).strip().lower()
+        return len(norm) > 12 and norm[:60] in hay
+
+    verified_rewrites = []
+    for b in result.get("bullet_rewrites", []) or []:
+        b["verified"] = _in_resume(b.get("original", ""))
+        verified_rewrites.append(b)
+    if verified_rewrites:
+        result["bullet_rewrites"] = verified_rewrites
+
+    # ── Deterministic grounding of scores ──
     bd = result.get("ats_breakdown") or {}
-    def _num(v, default=60):
-        try:
-            return max(0, min(100, float(v)))
-        except Exception:
-            return default
     kw = _num(bd.get("keywords"))
     fmt_ai = _num(bd.get("formatting"))
     struct = _num(bd.get("structure"))
     content = _num(bd.get("content_quality"))
 
-    # Blend the AI's formatting judgment with our REAL parse signal (50/50),
-    # since parse_score is measured, not guessed.
+    # Formatting: blend AI judgment with the MEASURED parse signal (50/50)
     fmt = round(0.5 * fmt_ai + 0.5 * parse_score)
+
+    # Keywords + job match: when a JD checklist exists, blend with the MEASURED
+    # requirement-match percentage so the score is grounded in the actual posting
+    req_match = result.get("requirement_match") or []
+    if jd_requirements and req_match:
+        found = sum(1 for r in req_match if r.get("found"))
+        match_pct = round(100 * found / max(len(req_match), 1))
+        kw = round(0.6 * kw + 0.4 * match_pct)
+        jm_ai = _num(result.get("job_match_score"), default=match_pct)
+        result["job_match_score"] = round(0.5 * jm_ai + 0.5 * match_pct)
 
     weighted = round(kw * 0.40 + fmt * 0.30 + struct * 0.20 + content * 0.10)
     result["ats_score"] = weighted
@@ -271,12 +413,17 @@ Resume:
     result["ats_weights"] = {"keywords": 40, "formatting": 30, "structure": 20, "content_quality": 10}
     result["parse_score"] = parse_score
     result["parse_flags"] = parse_flags
-
-    # attach input-quality signal so the frontend can guide the user
     result["input_quality"] = input_quality
     result["input_tips"] = input_tips
+    if jd_meta:
+        result["jd_meta"] = jd_meta
     return result
 
+
+# ────────────────────────────────────────────────────────────────────
+#  Remaining endpoints — unchanged behavior, now using the robust
+#  ai_json helper so malformed JSON gets one repair attempt
+# ────────────────────────────────────────────────────────────────────
 
 @app.post("/rewrite")
 async def rewrite_resume(
@@ -358,16 +505,7 @@ ORIGINAL RESUME:
 {text}
 {jd_context}
 """
-
-    response = client.chat.completions.create(
-        model=GROQ_MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.6,
-        max_tokens=4000,
-    )
-    raw = strip_json(response.choices[0].message.content)
-    print("REWRITE RESPONSE:", raw[:200])
-    return json.loads(raw)
+    return ai_json(prompt, temperature=0.5, max_tokens=4000)
 
 
 @app.post("/cover-letter")
@@ -410,7 +548,7 @@ You are an elite US cover letter writer. Write cover letters that get interviews
 TONE: {tone_guide}
 
 RULES:
-- Open with a hook — NOT "I am writing to apply for..." 
+- Open with a hook — NOT "I am writing to apply for..."
 - Reference 2-3 SPECIFIC achievements from the resume with real details
 - Mirror the job description's language if provided
 - Show genuine company knowledge if company is named
@@ -435,16 +573,7 @@ RESUME:
 {text}
 {jd_context}
 """
-
-    response = client.chat.completions.create(
-        model=GROQ_MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.5,
-        max_tokens=2000,
-    )
-    raw = strip_json(response.choices[0].message.content)
-    print("COVER LETTER RESPONSE:", raw[:200])
-    return json.loads(raw)
+    return ai_json(prompt, temperature=0.5, max_tokens=2000)
 
 
 @app.post("/linkedin")
@@ -506,16 +635,7 @@ Return ONLY JSON, no markdown:
 LINKEDIN PROFILE:
 {profile_text}
 """
-
-    response = client.chat.completions.create(
-        model=GROQ_MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.4,
-        max_tokens=3000,
-    )
-    raw = strip_json(response.choices[0].message.content)
-    print("LINKEDIN RESPONSE:", raw[:200])
-    return json.loads(raw)
+    return ai_json(prompt, temperature=0.4, max_tokens=3000)
 
 
 @app.post("/polish")
@@ -551,7 +671,6 @@ Original: {text}"""
             max_tokens=300,
         )
         polished = response.choices[0].message.content.strip()
-        # strip wrapping quotes if model added them
         if polished.startswith('"') and polished.endswith('"'):
             polished = polished[1:-1].strip()
         return {"polished": polished}
@@ -604,17 +723,10 @@ BAD EXAMPLES (too generic — never do this):
 Return ONLY a JSON array of 5 strings, no markdown, no explanation."""
             max_t = 700
 
-        response = client.chat.completions.create(
-            model=GROQ_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.6,
-            max_tokens=max_t,
-        )
-        raw = strip_json(response.choices[0].message.content)
-        items = json.loads(raw)
-        if isinstance(items, list):
+        raw = ai_json(prompt, temperature=0.6, max_tokens=max_t)
+        if isinstance(raw, list):
             limit = 10 if mode == "skills" else 5
-            return {"bullets": [str(b) for b in items][:limit]}
+            return {"bullets": [str(b) for b in raw][:limit]}
         return {"bullets": []}
     except Exception as e:
         print("Suggest error:", str(e))
@@ -628,7 +740,6 @@ async def verify_license(data: dict):
     if not key:
         return {"valid": False, "error": "Please enter your license key."}
     try:
-        # Lemon Squeezy license validation API
         resp = requests.post(
             "https://api.lemonsqueezy.com/v1/licenses/validate",
             data={"license_key": key},
@@ -636,10 +747,17 @@ async def verify_license(data: dict):
             timeout=10,
         )
         result = resp.json()
-        # "valid" is true when the key exists and is active
+        # Optional hardening: set these env vars in Render to reject keys from
+        # other Lemon Squeezy products (recommended by LS docs)
+        expected_store = os.getenv("LS_STORE_ID", "")
+        expected_product = os.getenv("LS_PRODUCT_ID", "")
+        meta = result.get("meta") or {}
+        if expected_store and str(meta.get("store_id", "")) != str(expected_store):
+            return {"valid": False, "error": "That license key isn't valid for this product."}
+        if expected_product and str(meta.get("product_id", "")) != str(expected_product):
+            return {"valid": False, "error": "That license key isn't valid for this product."}
         if result.get("valid") is True:
             return {"valid": True}
-        # activation-limit or inactive keys still return valid license_key info
         lic = result.get("license_key")
         if lic and lic.get("status") == "active":
             return {"valid": True}
@@ -653,14 +771,12 @@ async def verify_license(data: dict):
 async def save_feedback(data: dict):
     rating = data.get("rating", "")
     message = data.get("message", "")
-    # Send to Google Sheet — reuse the email column, tagged as feedback
     try:
         feedback_line = f"[FEEDBACK] {rating}★ — {message}"
         requests.post(GOOGLE_SHEET_URL, json={"email": feedback_line}, timeout=5)
-        print("Feedback sent to Google Sheet:", rating, message[:50])
+        print("Feedback sent to Google Sheet:", rating, str(message)[:50])
     except Exception as e:
         print("Google Sheet error:", str(e))
-    # Local backup
     try:
         with open("feedback.csv", "a") as f:
             clean_msg = str(message).replace("\n", " ").replace(",", ";")
@@ -673,13 +789,11 @@ async def save_feedback(data: dict):
 @app.post("/save-email")
 async def save_email(data: dict):
     email = data.get("email", "")
-    # Send to Google Sheet (reliable, survives restarts)
     try:
         requests.post(GOOGLE_SHEET_URL, json={"email": email}, timeout=5)
         print("Email sent to Google Sheet:", email)
     except Exception as e:
         print("Google Sheet error:", str(e))
-    # Also keep a local backup copy
     try:
         with open("emails.csv", "a") as f:
             f.write(f"{email}\n")

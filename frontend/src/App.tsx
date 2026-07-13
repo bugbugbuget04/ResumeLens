@@ -220,6 +220,32 @@ export default function App() {
     } catch (e) {}
   }, []);
 
+  // Auto-verify license key arriving from the Lemon Squeezy receipt/confirmation link.
+  // The key is still validated SERVER-SIDE — this just saves the customer from pasting it.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlKey = params.get("license_key");
+    if (!urlKey) return;
+    setLicenseKey(urlKey);
+    (async () => {
+      setVerifying(true);
+      try {
+        const res = await axios.post(`${API}/verify-license`, { license_key: urlKey.trim() });
+        if (res.data?.valid) {
+          setPremium(true);
+          localStorage.setItem("resumelens_premium", "true");
+        } else {
+          setLicenseError(res.data?.error || "That license key isn't valid.");
+        }
+      } catch {
+        setLicenseError("Couldn't verify automatically — paste your key below to unlock.");
+      }
+      setVerifying(false);
+      // Clean the key out of the URL bar
+      window.history.replaceState({}, "", window.location.pathname);
+    })();
+  }, []);
+
   // Show feedback popup 8 seconds after results appear (once per session)
   useEffect(() => {
     if (result && emailSubmitted && !feedbackDismissed && !feedbackSent) {
@@ -393,6 +419,49 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
     const a = document.createElement("a");
     a.href = url; a.download = "rewritten_resume.txt"; a.click();
     URL.revokeObjectURL(url);
+  };
+
+  // NEW — Premium: download the entire analysis as a branded, printable report
+  const handleDownloadFullReport = () => {
+    if (!result) return;
+    const esc = (s: any) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;");
+    const scoreColor = (s: number) => (s >= 80 ? "#059669" : s >= 60 ? "#ca8a04" : "#ef4444");
+    const bar = (v: number) =>
+      `<div style="background:#e7e5e4;border-radius:99px;height:8px;margin:4px 0 12px"><div style="width:${v}%;height:8px;border-radius:99px;background:${scoreColor(v)}"></div></div>`;
+    const bd = result.ats_breakdown || {};
+    const weights: any = { keywords: 40, formatting: 30, structure: 20, content_quality: 10 };
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>ResumeLenz Full Report</title>
+<style>@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Lato',Arial,sans-serif;color:#1c1917;max-width:7.5in;margin:0 auto;padding:0.6in 0.5in;font-size:10.5pt;line-height:1.55}
+h1{font-size:22pt;font-weight:900}h2{font-size:12pt;font-weight:900;margin:22px 0 8px;padding-bottom:4px;border-bottom:2px solid #facc15}
+.big{font-size:44pt;font-weight:900}.pill{display:inline-block;border:1px solid #e7e5e4;border-radius:99px;padding:2px 10px;font-size:9pt;margin:2px}
+.box{border:1px solid #e7e5e4;border-radius:10px;padding:10px 12px;margin:6px 0}
+.good{background:#ecfdf5;border-color:#a7f3d0}.bad{background:#fef2f2;border-color:#fecaca}
+.kw{display:inline-block;border-radius:99px;padding:2px 10px;font-size:9pt;margin:2px;border:1px solid}
+.muted{color:#78716c;font-size:9pt}table{width:100%;border-collapse:collapse}td{padding:6px 8px;border-bottom:1px solid #f5f5f4;font-size:9.5pt}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>
+<div style="display:flex;justify-content:space-between;align-items:center"><h1>ResumeLenz — Full Report</h1><span class="muted">${new Date().toLocaleDateString()}</span></div>
+<p class="muted">AI resume analysis · resumelenz.com</p>
+<h2>Overall Score</h2>
+<span class="big" style="color:${scoreColor(result.overall_score)}">${result.overall_score}</span><span style="font-size:16pt;color:#a8a29e">/100</span>
+<p style="margin-top:6px">${esc(result.summary)}</p>
+${result.recruiter_first_impression ? `<h2>Recruiter's First 6 Seconds</h2><div class="box" style="border-left:4px solid #facc15">${esc(result.recruiter_first_impression)}</div>` : ""}
+<h2>ATS Score — ${result.ats_score}/100</h2>
+${["keywords", "formatting", "structure", "content_quality"].map(k => `<div><b>${k.replace("_", " ")}</b> <span class="muted">· ${weights[k]}% of score</span> <span style="float:right;font-weight:700;color:${scoreColor(bd[k] || 0)}">${bd[k] ?? "—"}/100</span>${bar(bd[k] || 0)}</div>`).join("")}
+${result.ats_feedback ? `<p class="muted">${esc(result.ats_feedback)}</p>` : ""}
+${result.requirement_match?.length ? `<h2>Requirement Match${result.job_match_score ? ` — ${result.job_match_score}%` : ""}</h2><table>${result.requirement_match.map((r: any) => `<tr><td>${esc(r.requirement)}</td><td style="text-align:right;font-weight:700;color:${r.found ? "#059669" : "#ef4444"}">${r.found ? "✓ Found" : "✗ Missing"}</td></tr>`).join("")}</table>` : ""}
+<h2>Top Strengths</h2>${(result.top_strengths || []).map((s: string) => `<div class="box good">✓ ${esc(s)}</div>`).join("")}
+<h2>Critical Improvements</h2>${(result.critical_improvements || []).map((c: any) => `<div class="box bad"><b>${esc(c.priority)} · ${esc(c.section)}</b><br/>${esc(c.issue)}<br/><b>Fix:</b> ${esc(c.fix)}</div>`).join("")}
+${result.keyword_analysis ? `<h2>Keyword Analysis</h2><p><b>Strong:</b> ${(result.keyword_analysis.strong_keywords || []).map((k: string) => `<span class="kw" style="border-color:#a7f3d0;background:#ecfdf5;color:#047857">${esc(k)}</span>`).join("")}</p><p style="margin-top:6px"><b>Missing:</b> ${(result.keyword_analysis.missing_keywords || []).map((k: string) => `<span class="kw" style="border-color:#fecaca;background:#fef2f2;color:#dc2626">${esc(k)}</span>`).join("")}</p>` : ""}
+${result.bullet_rewrites?.length ? `<h2>Bullet Rewrites</h2>${result.bullet_rewrites.map((b: any) => `<div class="box bad"><b>Before:</b> ${esc(b.original)}</div><div class="box good"><b>After:</b> ${esc(b.rewrite)}</div>`).join("")}` : ""}
+${result.competitive_gap?.candidates_have?.length ? `<h2>Competitive Gap</h2><p class="muted">${esc(result.competitive_gap.intro)}</p><p><b>Top candidates have:</b> ${result.competitive_gap.candidates_have.map((c: string) => esc(c)).join(" · ")}</p>${result.competitive_gap.you_are_missing?.length ? `<p><b>You're missing:</b> ${result.competitive_gap.you_are_missing.map((c: string) => esc(c)).join(" · ")}</p>` : ""}` : ""}
+${result.target_roles?.length ? `<h2>Best Fit Roles</h2><p>${result.target_roles.map((r: string) => `<span class="pill">${esc(r)}</span>`).join("")}</p>` : ""}
+<div style="margin-top:28px;border-top:1px solid #e7e5e4;padding-top:8px;text-align:center" class="muted">Generated by ResumeLenz · resumelenz.com · Interview probability: ${esc(result.interview_probability)}</div>
+</body></html>`;
+    const win = window.open("", "_blank");
+    if (!win) { alert("Allow popups to download your report."); return; }
+    win.document.write(html); win.document.close(); win.focus();
+    setTimeout(() => win.print(), 600);
   };
 
   const sc = (s: number) => s >= 80 ? "text-emerald-600" : s >= 60 ? "text-yellow-600" : "text-red-500";
@@ -1031,6 +1100,19 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* ── PREMIUM: FULL REPORT PDF ── */}
+            {premium && (
+              <div className="bg-stone-900 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                  <h2 className="font-black text-white text-lg">📥 Your Full Report as PDF</h2>
+                  <p className="text-stone-400 text-sm">The complete analysis — scores, fixes, rewrites — as a branded document you can save or print.</p>
+                </div>
+                <button onClick={handleDownloadFullReport} className="bg-yellow-400 hover:bg-yellow-500 text-stone-900 px-6 py-3 rounded-xl font-black whitespace-nowrap">
+                  Download Report PDF
+                </button>
               </div>
             )}
 

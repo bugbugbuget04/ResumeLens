@@ -808,3 +808,72 @@ async def save_email(data: dict):
     except Exception:
         pass
     return {"message": "Email saved!"}
+
+
+# ────────────────────────────────────────────────────────────────────
+#  DOCX export — turns the rewritten resume into a real Word file.
+#  Requires `python-docx` in requirements.txt.
+# ────────────────────────────────────────────────────────────────────
+from fastapi.responses import StreamingResponse
+from docx import Document
+from docx.shared import Pt, Inches, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+import re as _re
+
+
+@app.post("/export-docx")
+async def export_docx(data: dict):
+    text = (data.get("resume_text") or "").strip()
+    if not text:
+        return {"error": "No resume text provided."}
+
+    doc = Document()
+    for section in doc.sections:
+        section.top_margin = Inches(0.6)
+        section.bottom_margin = Inches(0.6)
+        section.left_margin = Inches(0.75)
+        section.right_margin = Inches(0.75)
+
+    normal = doc.styles["Normal"]
+    normal.font.name = "Calibri"
+    normal.font.size = Pt(10.5)
+
+    lines = text.split("\n")
+    is_heading = lambda t: bool(_re.match(r"^[A-Z\s&/]{4,}$", t)) and len(t.strip()) > 2
+    first_content_done = False
+
+    for raw in lines:
+        t = raw.strip()
+        if not t:
+            continue
+        if not first_content_done:
+            # First non-empty line = candidate name
+            p = doc.add_paragraph()
+            run = p.add_run(t)
+            run.bold = True
+            run.font.size = Pt(18)
+            p.paragraph_format.space_after = Pt(2)
+            first_content_done = True
+        elif is_heading(t):
+            p = doc.add_paragraph()
+            run = p.add_run(t)
+            run.bold = True
+            run.font.size = Pt(11.5)
+            run.font.color.rgb = RGBColor(0x1A, 0x1A, 0x1A)
+            p.paragraph_format.space_before = Pt(10)
+            p.paragraph_format.space_after = Pt(3)
+        elif t.startswith(("-", "•", "*")):
+            p = doc.add_paragraph(t.lstrip("-•* ").strip(), style="List Bullet")
+            p.paragraph_format.space_after = Pt(2)
+        else:
+            p = doc.add_paragraph(t)
+            p.paragraph_format.space_after = Pt(2)
+
+    stream = io.BytesIO()
+    doc.save(stream)
+    stream.seek(0)
+    return StreamingResponse(
+        stream,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": "attachment; filename=optimized_resume.docx"},
+    )

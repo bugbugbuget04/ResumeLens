@@ -184,6 +184,7 @@ export default function App() {
   const [rewriting, setRewriting] = useState(false);
   const [rewriteResult, setRewriteResult] = useState<any>(null);
   const [rewriteError, setRewriteError] = useState("");
+  const [docxLoading, setDocxLoading] = useState(false);
 
   // Cover letter state
   const [clTone, setClTone] = useState<"professional" | "conversational" | "bold">("professional");
@@ -421,6 +422,25 @@ p{margin-bottom:2px;font-size:10.5pt}@media print{body{padding:0.5in 0.6in}}</st
     URL.revokeObjectURL(url);
   };
 
+  // NEW — real Word document export via backend python-docx
+  const handleDownloadDocx = async () => {
+    if (!rewriteResult?.rewritten_resume) return;
+    setDocxLoading(true);
+    try {
+      const res = await axios.post(`${API}/export-docx`,
+        { resume_text: rewriteResult.rewritten_resume },
+        { responseType: "blob" });
+      const url = URL.createObjectURL(new Blob([res.data],
+        { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }));
+      const a = document.createElement("a");
+      a.href = url; a.download = "optimized_resume.docx"; a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert("DOCX export failed — please try again in a moment.");
+    }
+    setDocxLoading(false);
+  };
+
   // NEW — Premium: download the entire analysis as a branded, printable report
   const handleDownloadFullReport = () => {
     if (!result) return;
@@ -510,7 +530,7 @@ ${result.target_roles?.length ? `<h2>Best Fit Roles</h2><p>${result.target_roles
         </button>
         <div className="flex items-center gap-4">
           <a href="/build" className="text-stone-600 hover:text-stone-900 text-sm font-semibold transition-all hidden sm:block">📝 Build Resume</a>
-          <span className="text-stone-500 text-sm hidden md:block">Free AI resume analysis in 30 seconds</span>
+          <span className="text-stone-500 text-sm hidden md:block">Honest AI resume analysis in under a minute</span>
           <button onClick={handleCheckout} className="bg-yellow-400 hover:bg-yellow-500 text-stone-900 px-4 py-2 rounded-lg text-sm font-semibold transition-all">
             Get Full Report — $3.99
           </button>
@@ -529,10 +549,13 @@ ${result.target_roles?.length ? `<h2>Best Fit Roles</h2><p>${result.target_roles
               <h1 className="text-5xl md:text-6xl font-black text-stone-900 mb-4 leading-tight">
                 Is Your Resume<br /><span className="text-yellow-500">Getting You Hired?</span>
               </h1>
-              <p className="text-stone-600 text-xl mb-3">Get an expert AI score in 30 seconds — completely free</p>
-              <div className="flex justify-center gap-6 text-sm text-stone-500">
-                <span>✓ ATS Analysis</span><span>✓ Expert Feedback</span><span>✓ US Job Market</span>
+              <p className="text-stone-600 text-xl mb-3">A transparent, expert AI score in under 60 seconds — completely free</p>
+              <div className="flex justify-center gap-6 text-sm text-stone-500 flex-wrap">
+                <span>✓ Transparent weighted ATS score</span><span>✓ Real file parse testing</span><span>✓ US Job Market</span>
               </div>
+              <p className="text-stone-400 text-sm mt-4 max-w-xl mx-auto">
+                No fake "75% of resumes get rejected" scare stats. We show you the exact scoring math, test how your actual file parses, and our AI rewrites <span className="font-semibold text-stone-500">never invent experience you don't have</span>.
+              </p>
             </div>
 
             <div className="bg-white border border-stone-200 rounded-2xl p-8 shadow-sm">
@@ -716,7 +739,7 @@ ${result.target_roles?.length ? `<h2>Best Fit Roles</h2><p>${result.target_roles
 
               <button onClick={handleAnalyze} disabled={!file || loading}
                 className="w-full bg-yellow-400 hover:bg-yellow-500 disabled:opacity-40 text-stone-900 py-4 rounded-xl font-bold text-lg transition-all">
-                {loading ? "⏳ Analyzing your resume..." : "Analyze My Resume — It's Free →"}
+                {loading ? "⏳ Analyzing your resume… (~40 seconds)" : "Analyze My Resume — It's Free →"}
               </button>
               <p className="text-center text-stone-400 text-xs mt-3">🔒 Your resume is never stored</p>
             </div>
@@ -1175,8 +1198,9 @@ ${result.target_roles?.length ? `<h2>Best Fit Roles</h2><p>${result.target_roles
                       </pre>
                     </div>
                     <div className="flex gap-3">
-                      <button onClick={handleDownloadResumePDF} className="flex-1 bg-yellow-400 hover:bg-yellow-500 text-stone-900 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2">📥 Download as PDF</button>
-                      <button onClick={handleDownloadTxt} className="flex-1 bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2">📄 Download as .txt</button>
+                      <button onClick={handleDownloadResumePDF} className="flex-1 bg-yellow-400 hover:bg-yellow-500 text-stone-900 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2">📥 PDF</button>
+                      <button onClick={handleDownloadDocx} disabled={docxLoading} className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:opacity-60 text-white py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2">{docxLoading ? "⏳ Building…" : "📝 Word (.docx)"}</button>
+                      <button onClick={handleDownloadTxt} className="flex-1 bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2">📄 .txt</button>
                     </div>
                     <p className="text-stone-400 text-xs text-center">PDF opens a print dialog — choose "Save as PDF" in your browser</p>
                     <button onClick={() => { setRewriteResult(null); localStorage.removeItem("resumelens_rewrite"); }}
